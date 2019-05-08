@@ -100,6 +100,8 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
             "topChange",
             event
          );
+
+        sendCurrentViewState();
     }
 
     @Override
@@ -149,6 +151,8 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
         Constants.Pinch.MINIMUM_ZOOM = this.minScale;
         Constants.Pinch.MAXIMUM_ZOOM = this.maxScale;
 
+
+        sendCurrentViewState();
     }
 
     @Override
@@ -191,6 +195,8 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                 "topChange",
                 event
              );
+
+            sendCurrentViewState();
         }
 
         lastPageWidth = pageWidth;
@@ -303,6 +309,32 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
             }
         }
 
+    }
+
+    public void sendCurrentViewState() {
+
+
+        PdfViewState pdfViewState = this.getCurrentViewState();
+
+        if (pdfViewState == null)
+            return;
+        WritableMap event = Arguments.createMap();
+
+        event.putString("message", "positionChanged|"+pdfViewState.currentPage+"|"+pdfViewState.pageFocusX+"|"+pdfViewState.pageFocusY+"|"+pdfViewState.zoom + "|" + this.getPositionOffset());
+
+        ReactContext reactContext = (ReactContext)this.getContext();
+        reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(
+                this.getId(),
+                "topChange",
+                event
+        );
+
+    }
+
+    public void restoreViewState(int currentPage, float pageFocusX, float pageFocusY, float zoom) {
+        PdfViewState pdfViewState = new PdfViewState(currentPage, pageFocusX, pageFocusY, zoom);
+
+        this.setRestoredState(pdfViewState);
     }
 
     private void showLog(final String str) {

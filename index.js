@@ -11,6 +11,7 @@ import React, {Component} from 'react';
 import PropTypes from 'prop-types';
 import {
     requireNativeComponent,
+    NativeModules,
     View,
     Platform,
     ProgressBarAndroid,
@@ -24,6 +25,8 @@ import RNFetchBlob from 'rn-fetch-blob';
 const SHA1 = require('crypto-js/sha1');
 import resolveAssetSource from 'react-native/Libraries/Image/resolveAssetSource';
 import PdfView from './PdfView';
+
+
 
 export default class Pdf extends Component {
 
@@ -58,7 +61,8 @@ export default class Pdf extends Component {
         onError: PropTypes.func,
         onPageSingleTap: PropTypes.func,
         onScaleChanged: PropTypes.func,
-
+        onPositionChanged:  PropTypes.func,
+        restoreViewState: PropTypes.string,
         // Props that are not available in the earlier react native version, added to prevent crashed on android
         accessibilityLabel: PropTypes.string,
         importantForAccessibility: PropTypes.string,
@@ -83,6 +87,7 @@ export default class Pdf extends Component {
         enablePaging: false,
         enableRTL: false,
         activityIndicatorProps: {color: '#009900', progressTintColor: '#009900'},
+        restoreViewState: "",
         onLoadProgress: (percent) => {
         },
         onLoadComplete: (numberOfPages, path) => {
@@ -95,7 +100,15 @@ export default class Pdf extends Component {
         },
         onScaleChanged: (scale) => {
         },
+
+        onPositionChanged: (currentPage, pageFocusX, pageFocusY, zoom, positionOffset) => {
+        },
     };
+
+
+
+    
+
 
     constructor(props) {
 
@@ -325,23 +338,33 @@ export default class Pdf extends Component {
         let message = event.nativeEvent.message.split('|');
         //__DEV__ && console.log("onChange: " + message);
         if (message.length > 0) {
-            if (message.length > 5) {
-                message[4] = message.splice(4).join('|');
+
+
+            if (message[0] === 'positionChanged') {
+
+                  //  console.log("positionChanged", Number(message[1]), Number(message[2]), Number(message[3]), Number(message[4]), Number(message[5]))
+                 this.props.onPositionChanged && this.props.onPositionChanged(Number(message[1]), Number(message[2]), Number(message[3]), Number(message[4]), Number(message[5]));
+               // alert(message[1])
             }
-            if (message[0] === 'loadComplete') {
-                this.props.onLoadComplete && this.props.onLoadComplete(Number(message[1]), this.state.path, {
-                    width: Number(message[2]),
-                    height: Number(message[3]),
-                },
-                message[4]&&JSON.parse(message[4]));
-            } else if (message[0] === 'pageChanged') {
-                this.props.onPageChanged && this.props.onPageChanged(Number(message[1]), Number(message[2]));
-            } else if (message[0] === 'error') {
-                this._onError(new Error(message[1]));
-            } else if (message[0] === 'pageSingleTap') {
-                this.props.onPageSingleTap && this.props.onPageSingleTap(message[1]);
-            } else if (message[0] === 'scaleChanged') {
-                this.props.onScaleChanged && this.props.onScaleChanged(message[1]);
+            else {
+                if (message.length > 5) {
+                    message[4] = message.splice(4).join('|');
+                }
+                if (message[0] === 'loadComplete') {
+                    this.props.onLoadComplete && this.props.onLoadComplete(Number(message[1]), this.state.path, {
+                        width: Number(message[2]),
+                        height: Number(message[3]),
+                    },
+                    message[4]&&JSON.parse(message[4]));
+                } else if (message[0] === 'pageChanged') {
+                    this.props.onPageChanged && this.props.onPageChanged(Number(message[1]), Number(message[2]));
+                } else if (message[0] === 'error') {
+                    this._onError(new Error(message[1]));
+                } else if (message[0] === 'pageSingleTap') {
+                    this.props.onPageSingleTap && this.props.onPageSingleTap(message[1]);
+                } else if (message[0] === 'scaleChanged') {
+                    this.props.onScaleChanged && this.props.onScaleChanged(message[1]);
+                }
             }
         }
 

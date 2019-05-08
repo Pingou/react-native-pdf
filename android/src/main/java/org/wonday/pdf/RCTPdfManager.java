@@ -20,6 +20,7 @@ import com.facebook.react.bridge.NativeModule;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.Arguments;
+import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.uimanager.SimpleViewManager;
 import com.facebook.react.uimanager.ThemedReactContext;
@@ -118,6 +119,17 @@ public class RCTPdfManager extends SimpleViewManager<PdfView> {
     @ReactProp(name = "fitPolicy")
     public void setFitPolycy(PdfView pdfView, int fitPolicy) {
         pdfView.setFitPolicy(fitPolicy);
+    }
+
+    @ReactProp(name = "restoreViewState")
+    public void restoreViewState(PdfView pdfView, String values) {
+
+        if (values == null || values.length() == 0)
+            return;
+        String[] valuesTab = values.split("/");
+
+
+        pdfView.restoreViewState(Integer.valueOf(valuesTab[0]), Float.valueOf(valuesTab[1]), Float.valueOf(valuesTab[2]), Float.valueOf(valuesTab[3]));
     }
 
     @Override
