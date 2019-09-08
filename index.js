@@ -62,6 +62,7 @@ export default class Pdf extends Component {
         onPageSingleTap: PropTypes.func,
         onScaleChanged: PropTypes.func,
         onPositionChanged:  PropTypes.func,
+        onLongClick:  PropTypes.func,
         restoreViewState: PropTypes.string,
         // Props that are not available in the earlier react native version, added to prevent crashed on android
         accessibilityLabel: PropTypes.string,
@@ -71,6 +72,7 @@ export default class Pdf extends Component {
         onLayout: PropTypes.bool,
         accessibilityLiveRegion: PropTypes.string,
         accessibilityComponentType: PropTypes.string,
+        annotations: PropTypes.array
     };
 
     static defaultProps = {
@@ -88,6 +90,7 @@ export default class Pdf extends Component {
         enableRTL: false,
         activityIndicatorProps: {color: '#009900', progressTintColor: '#009900'},
         restoreViewState: "",
+        annotations: [],
         onLoadProgress: (percent) => {
         },
         onLoadComplete: (numberOfPages, path) => {
@@ -96,12 +99,17 @@ export default class Pdf extends Component {
         },
         onError: (error) => {
         },
-        onPageSingleTap: (page) => {
+        onPageSingleTap: (x, y, page) => {
         },
         onScaleChanged: (scale) => {
         },
 
         onPositionChanged: (currentPage, pageFocusX, pageFocusY, zoom, positionOffset) => {
+        },
+
+        onLongClick: (x, y, page) => {
+        },
+        onSimpleClick: (x, y, page) => {
         },
     };
 
@@ -364,6 +372,12 @@ export default class Pdf extends Component {
                     this.props.onPageSingleTap && this.props.onPageSingleTap(message[1]);
                 } else if (message[0] === 'scaleChanged') {
                     this.props.onScaleChanged && this.props.onScaleChanged(message[1]);
+                }
+                else if (message[0] === 'longClick') {
+                    this.props.onLongClick && this.props.onLongClick(Number(message[1]), Number(message[2]), Number(message[3]));
+                }
+                 else if (message[0] === 'simpleClick') {
+                    this.props.onSimpleClick && this.props.onSimpleClick(Number(message[1]), Number(message[2]), Number(message[3]));
                 }
             }
         }

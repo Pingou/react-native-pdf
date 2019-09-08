@@ -42,7 +42,7 @@ android {
 
 dependencies {
     implementation "com.facebook.react:react-native:${_reactNativeVersion}"
-    implementation 'com.github.Pingou:AndroidPdfViewer:90608a7a7f'
+    implementation 'com.github.Pingou:AndroidPdfViewer:0bb9510'
 
     implementation 'com.google.code.gson:gson:2.8.5'
 }

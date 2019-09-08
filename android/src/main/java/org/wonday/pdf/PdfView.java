@@ -11,6 +11,10 @@ package org.wonday.pdf;
 import java.io.File;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.view.View;
 import android.view.ViewGroup;
 import android.util.Log;
@@ -23,6 +27,7 @@ import javax.annotation.Nullable;
 
 
 import com.github.barteksc.pdfviewer.PDFView;
+import com.github.barteksc.pdfviewer.listener.OnLongPressListener;
 import com.github.barteksc.pdfviewer.listener.OnPageChangeListener;
 import com.github.barteksc.pdfviewer.listener.OnLoadCompleteListener;
 import com.github.barteksc.pdfviewer.listener.OnErrorListener;
@@ -47,13 +52,18 @@ import com.facebook.common.logging.FLog;
 import com.facebook.react.common.ReactConstants;
 
 import static java.lang.String.format;
+
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.ClassCastException;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.shockwave.pdfium.PdfDocument;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompleteListener,OnErrorListener,OnTapListener,OnDrawListener,OnPageScrollListener {
+public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompleteListener,OnErrorListener,OnTapListener,OnDrawListener,OnPageScrollListener,OnLongPressListener {
     private ThemedReactContext context;
     private int page = 1;               // start from 1
     private boolean horizontal = false;
@@ -78,11 +88,92 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
     private float lastPageWidth = 0;
     private float lastPageHeight = 0;
 
+    public static class PdfAnnotation {
+        public int x;
+        public int y;
+        public int pageNb;
+
+        public PdfAnnotation() {
+
+        }
+
+        public PdfAnnotation(int x, int y, int pageNb) {
+            this.x = x;
+            this.y = y;
+            this.pageNb = pageNb;
+        }
+    }
+
+    public List<PdfAnnotation> pdfAnnotations;
+
+    private Bitmap annotationBitmapZoom1;
+    private Bitmap annotationBitmapZoom2;
+    private Bitmap annotationBitmapZoom3;
+
+
 
     public PdfView(ThemedReactContext context, AttributeSet set){
         super(context,set);
         this.context = context;
         this.instance = this;
+
+        loadAnnotationBitmap();
+    }
+
+    public PdfAnnotation createAnnotation(int x, int y, int pageNb) {
+        PdfAnnotation annotation = new PdfAnnotation();
+        annotation.x = x;
+        annotation.y = y;
+        annotation.pageNb = pageNb;
+        return annotation;
+    }
+
+    public void addAnnotation(PdfAnnotation annotation) {
+        if (this.pdfAnnotations == null)
+            this.pdfAnnotations = new ArrayList<>();
+
+        this.pdfAnnotations.add(annotation);
+    }
+
+
+    public void setAnnotations(List<PdfView.PdfAnnotation> pdfAnnotations) {
+        this.pdfAnnotations = pdfAnnotations;
+    }
+
+    private void loadAnnotationBitmap() {
+       /* Bitmap bitmap = BitmapFactory.decodeResource(
+                getResources(),
+                R.drawable.
+        );*/
+
+        try {
+            InputStream bit = this.context.getAssets().open("star.png");
+            Bitmap bitmap =BitmapFactory.decodeStream(bit);
+
+            this.annotationBitmapZoom1 = Bitmap.createScaledBitmap(bitmap, 40, 40, false);
+            this.annotationBitmapZoom2 = Bitmap.createScaledBitmap(bitmap, 40, 40, false);
+            this.annotationBitmapZoom3 = Bitmap.createScaledBitmap(bitmap, 60, 60, false);
+
+        } catch (IOException e1) {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+        }
+
+
+
+    }
+
+
+    public Bitmap getAnnotationBitmap(int zoom) {
+        Log.d("plop zoom", " " + zoom);
+
+        if (zoom > 2)
+            return this.annotationBitmapZoom3;
+        else if (zoom > 1)
+            return this.annotationBitmapZoom2;
+        else
+            return this.annotationBitmapZoom1;
+
     }
 
     @Override
@@ -156,22 +247,57 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
     }
 
     @Override
+    public void onLongPress(MotionEvent e) {
+
+        if (instance != null) {
+            PdfAnnotation annotation = getAnnotationAtPos(Math.round(e.getX()), Math.round(e.getY()));
+
+
+            Log.d("plop onLongPress", " " + annotation.x + " " + annotation.y);
+            //addAnnotation(annotation);
+
+
+            WritableMap event = Arguments.createMap();
+
+            event.putString("message", "longClick|"+annotation.x+"|"+annotation.y+"|"+annotation.pageNb);
+
+            ReactContext reactContext = (ReactContext)this.getContext();
+            reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(
+                    this.getId(),
+                    "topChange",
+                    event
+            );
+
+           // instance.redraw();
+        }
+    }
+
+    @Override
     public boolean onTap(MotionEvent e){
 
         // maybe change by other instance, restore zoom setting
         Constants.Pinch.MINIMUM_ZOOM = this.minScale;
         Constants.Pinch.MAXIMUM_ZOOM = this.maxScale;
 
-        WritableMap event = Arguments.createMap();
-        event.putString("message", "pageSingleTap|"+page);
+        if (instance != null) {
+            PdfAnnotation annotation = getAnnotationAtPos(Math.round(e.getX()), Math.round(e.getY()));
 
-        ReactContext reactContext = (ReactContext)this.getContext();
-        reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(
-            this.getId(),
-            "topChange",
-            event
-         );
 
+            Log.d("plop onLongPress", " " + annotation.x + " " + annotation.y);
+
+            WritableMap event = Arguments.createMap();
+
+            event.putString("message", "simpleClick|"+annotation.x+"|"+annotation.y+"|"+annotation.pageNb);
+
+            ReactContext reactContext = (ReactContext)this.getContext();
+            reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(
+                    this.getId(),
+                    "topChange",
+                    event
+            );
+
+
+        }
         // process as tap
          return true;
 
@@ -179,6 +305,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
     @Override
     public void onLayerDrawn(Canvas canvas, float pageWidth, float pageHeight, int displayedPage){
+
 
         if (lastPageWidth>0 && lastPageHeight>0 && (pageWidth!=lastPageWidth || pageHeight!=lastPageHeight)) {
 
@@ -202,8 +329,66 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
         lastPageWidth = pageWidth;
         lastPageHeight = pageHeight;
 
+        if (instance != null && pdfAnnotations != null) {
+            for (PdfAnnotation pdfAnnotation : pdfAnnotations) {
+
+                if (pdfAnnotation.pageNb == displayedPage) {
+
+                    Log.d("plop drawing at", " " + pageWidth * pdfAnnotation.x / 100);
+                    Paint paint = new Paint();
+                    paint.setColor(Color.RED);
+
+                                    /*RectF img = new RectF(pageWidth * (pdfAnnotation.x / 100.0f),
+                                            pageHeight * (pdfAnnotation.y / 100.0f),
+                                            pageWidth * (pdfAnnotation.x / 100.0f) + 20,
+                                            pageHeight * (pdfAnnotation.y / 100.0f) + 20);
+                                    canvas.drawRect(img, paint);*/
+
+
+                    Bitmap bitmap = getAnnotationBitmap((int) instance.getZoom());
+                    canvas.drawBitmap(bitmap
+                            , pageWidth * (pdfAnnotation.x / 100.0f) - (bitmap.getWidth() / 2)
+                            , pageHeight * (pdfAnnotation.y / 100.0f) - (bitmap.getHeight() / 2)
+                            , null);
+                }
+            }
+        }
     }
 
+
+    private PdfAnnotation getAnnotationAtPos(int x, int y) {
+        int pageNb = instance.getCurrentPage();
+        PdfAnnotation results = getPercentPosForPage(x, y, pageNb);
+
+        if (results.y > 100) {
+            pageNb += 1;
+            results = getPercentPosForPage(x, y, pageNb);
+        }
+        else if (results.y < 0) {
+            pageNb -= 1;
+            results = getPercentPosForPage(x, y, pageNb);
+        }
+
+        return results;
+    }
+
+    private PdfAnnotation getPercentPosForPage(int x, int y, int page) {
+        float xPositionInRealScale = instance.toRealScale(-instance.getCurrentXOffset() + x);
+        float yPositionInRealScale = instance.toRealScale(-instance.getCurrentYOffset() + y);
+
+        if (instance.isSwipeVertical()) {
+            xPositionInRealScale = xPositionInRealScale - instance.getSecondaryPageOffset(page, 1);
+            yPositionInRealScale = yPositionInRealScale - instance.getPageOffset(page, 1);
+        } else {
+            xPositionInRealScale = xPositionInRealScale - instance.getPageOffset(page, 1);
+            yPositionInRealScale = yPositionInRealScale - instance.getSecondaryPageOffset(page, 1);
+        }
+
+        float xPer = xPositionInRealScale / instance.getPageSize(page).getWidth() * 100;
+        float yPer = yPositionInRealScale / instance.getPageSize(page).getHeight() * 100;
+
+        return new PdfAnnotation(Math.round(xPer), Math.round(yPer), page);
+    }
 
     public void drawPdf() {
         showLog(format("drawPdf path:%s %s", this.path, this.page));
@@ -224,6 +409,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                 .onLoad(this)
                 .onError(this)
                 .onTap(this)
+                .onLongPress(this)
                 .onDraw(this)
                 .onPageScroll(this)
                 .spacing(this.spacing)

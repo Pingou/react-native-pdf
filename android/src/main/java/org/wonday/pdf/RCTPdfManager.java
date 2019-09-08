@@ -21,6 +21,8 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.ReadableArray;
+import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.uimanager.SimpleViewManager;
 import com.facebook.react.uimanager.ThemedReactContext;
@@ -31,6 +33,8 @@ import com.facebook.react.modules.core.DeviceEventManagerModule;
 
 import static java.lang.String.format;
 import java.lang.ClassCastException;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.github.barteksc.pdfviewer.util.FitPolicy;
 
@@ -130,6 +134,25 @@ public class RCTPdfManager extends SimpleViewManager<PdfView> {
 
 
         pdfView.restoreViewState(Integer.valueOf(valuesTab[0]), Float.valueOf(valuesTab[1]), Float.valueOf(valuesTab[2]), Float.valueOf(valuesTab[3]));
+    }
+
+    @ReactProp(name = "annotations")
+    public void setAnnotations(PdfView pdfView, ReadableArray annotations) {
+
+        List<PdfView.PdfAnnotation> newList = new ArrayList<>();
+        if (annotations != null) {
+
+
+
+            for (int i = 0; i < annotations.size(); i++) {
+                ReadableMap obj = annotations.getMap(i);
+
+                PdfView.PdfAnnotation newAnnotation = new PdfView.PdfAnnotation(obj.getInt("x"), obj.getInt("y"), obj.getInt("pageNb"));
+                newList.add(newAnnotation);
+            }
+        }
+        pdfView.setAnnotations(newList);
+
     }
 
     @Override
