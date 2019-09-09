@@ -10,7 +10,7 @@ import * as React from 'react';
 import * as ReactNative from 'react-native';
 
 interface Props {
-    style?: ReactNative.ViewStyle,
+    style?: ReactNative.StyleProp<ReactNative.ViewStyle>,
     source: object,
     page?: number,
     scale?: number,
@@ -20,6 +20,7 @@ interface Props {
     spacing?: number,
     password?: string,
     activityIndicator?: any,
+    activityIndicatorProps?: object,
     enableAntialiasing?: boolean,
     enablePaging?: boolean,
     enableRTL?: boolean,

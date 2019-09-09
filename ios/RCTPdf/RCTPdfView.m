@@ -150,8 +150,7 @@ const float MIN_SCALE = 1.0f;
                 for (unsigned long i=0; i<_pdfView.document.pageCount; i++) {
                     PDFPage *pdfPage = [_pdfView.document pageAtIndex:i];
                     for (unsigned long j=0; j<pdfPage.annotations.count; j++) {
-                        [pdfPage removeAnnotation:pdfPage.annotations[j]];
-                        //pdfPage.annotations[j].shouldDisplay = _enableAnnotationRendering;
+                        pdfPage.annotations[j].shouldDisplay = _enableAnnotationRendering;
                     }
                 }
             }
@@ -402,18 +401,23 @@ const float MIN_SCALE = 1.0f;
  */
 - (void)handleDoubleTap:(UITapGestureRecognizer *)recognizer
 {
-    
-    // one tap add scale 1.2 times
-    _scale = _scale*1.2;
-    
-    if (_scale>_pdfView.maxScaleFactor/_fixScaleFactor){
-        _scale = _pdfView.minScaleFactor/_fixScaleFactor;
+    // Cycle through min/mid/max scale factors to be consistent with Android
+    float min = _pdfView.minScaleFactor/_fixScaleFactor;
+    float max = _pdfView.maxScaleFactor/_fixScaleFactor;
+    float mid = (max - min) / 2 + min;
+    float scale = _scale;
+    if (_scale < mid) {
+        scale = mid;
+    } else if (_scale < max) {
+        scale = max;
+    } else {
+        scale = min;
     }
     
-    _pdfView.scaleFactor = _scale*_fixScaleFactor;
+    _pdfView.scaleFactor = scale*_fixScaleFactor;
     
     [self setNeedsDisplay];
-    
+    [self onScaleChanged:Nil];
 }
 
 /**
@@ -424,9 +428,8 @@ const float MIN_SCALE = 1.0f;
  */
 - (void)handleSingleTap:(UITapGestureRecognizer *)sender
 {
-    
-    _scale = _pdfView.minScaleFactor/_fixScaleFactor;
-    _pdfView.scaleFactor = _pdfView.minScaleFactor;
+	
+    //_pdfView.scaleFactor = _pdfView.minScaleFactor;
     
     CGPoint point = [sender locationInView:self];
     PDFPage *pdfPage = [_pdfView pageForPoint:point nearest:NO];
@@ -435,7 +438,9 @@ const float MIN_SCALE = 1.0f;
         _onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"pageSingleTap|%lu", page+1]]});
     }
     
-    [self setNeedsDisplay];
+    //[self setNeedsDisplay];
+    //[self onScaleChanged:Nil];
+    
     
 }
 
@@ -447,6 +452,15 @@ const float MIN_SCALE = 1.0f;
  */
 -(void)handlePinch:(UIPinchGestureRecognizer *)sender{
     [self onScaleChanged:Nil];
+}
+
+/**
+ *  Do nothing on long Press
+ *
+ *
+ */
+- (void)handleLongPress:(UILongPressGestureRecognizer *)sender{
+    
 }
 
 /**
@@ -477,6 +491,15 @@ const float MIN_SCALE = 1.0f;
                                                                                           action:@selector(handlePinch:)];
     [self addGestureRecognizer:pinchRecognizer];
     pinchRecognizer.delegate = self;
+    
+    UILongPressGestureRecognizer *longPressRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self
+                                                                                            action:@selector(handleLongPress:)];
+    // Making sure the allowable movement isn not too narrow
+    longPressRecognizer.allowableMovement=100;
+    // Important: The duration must be long enough to allow taps but not longer than the period in which view opens the magnifying glass
+    longPressRecognizer.minimumPressDuration=0.3;
+    
+    [self addGestureRecognizer:longPressRecognizer];
     
 }
 

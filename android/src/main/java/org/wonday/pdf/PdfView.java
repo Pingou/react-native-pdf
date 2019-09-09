@@ -276,8 +276,8 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
     public boolean onTap(MotionEvent e){
 
         // maybe change by other instance, restore zoom setting
-        Constants.Pinch.MINIMUM_ZOOM = this.minScale;
-        Constants.Pinch.MAXIMUM_ZOOM = this.maxScale;
+        //Constants.Pinch.MINIMUM_ZOOM = this.minScale;
+        //Constants.Pinch.MAXIMUM_ZOOM = this.maxScale;
 
         if (instance != null) {
             PdfAnnotation annotation = getAnnotationAtPos(Math.round(e.getX()), Math.round(e.getY()));
@@ -355,6 +355,12 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
         }
     }
 
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        if (this.isRecycled())
+            this.drawPdf();
+    }
 
     private PdfAnnotation getAnnotationAtPos(int x, int y) {
         int pageNb = instance.getCurrentPage();
