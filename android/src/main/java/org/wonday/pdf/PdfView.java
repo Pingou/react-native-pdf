@@ -150,9 +150,9 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
             InputStream bit = this.context.getAssets().open("star.png");
             Bitmap bitmap =BitmapFactory.decodeStream(bit);
 
-            this.annotationBitmapZoom1 = Bitmap.createScaledBitmap(bitmap, 40, 40, false);
-            this.annotationBitmapZoom2 = Bitmap.createScaledBitmap(bitmap, 40, 40, false);
-            this.annotationBitmapZoom3 = Bitmap.createScaledBitmap(bitmap, 60, 60, false);
+            this.annotationBitmapZoom1 = Bitmap.createScaledBitmap(bitmap, 60, 60, false);
+            this.annotationBitmapZoom2 = Bitmap.createScaledBitmap(bitmap, 60, 60, false);
+            this.annotationBitmapZoom3 = Bitmap.createScaledBitmap(bitmap, 80, 80, false);
 
         } catch (IOException e1) {
             // TODO Auto-generated catch block
