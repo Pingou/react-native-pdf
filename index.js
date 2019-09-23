@@ -62,6 +62,8 @@ export default class Pdf extends Component {
         onPageSingleTap: PropTypes.func,
         onScaleChanged: PropTypes.func,
         onPositionChanged:  PropTypes.func,
+        onIosPositionChanged:  PropTypes.func,
+        onAnnotationClicked:  PropTypes.func,
         onLongClick:  PropTypes.func,
         restoreViewState: PropTypes.string,
         // Props that are not available in the earlier react native version, added to prevent crashed on android
@@ -107,6 +109,12 @@ export default class Pdf extends Component {
         onPositionChanged: (currentPage, pageFocusX, pageFocusY, zoom, positionOffset) => {
         },
 
+        onIosPositionChanged: (currentPage, x, y, width, height, zoom) => {
+        },
+
+        onAnnotationClicked: (uniqueIdOnClient) => {
+
+        },
         onLongClick: (x, y, page) => {
         },
         onSimpleClick: (x, y, page) => {
@@ -354,8 +362,11 @@ export default class Pdf extends Component {
     _onChange = (event) => {
 
         let message = event.nativeEvent.message.split('|');
+
+       
         //__DEV__ && console.log("onChange: " + message);
         if (message.length > 0) {
+
 
 
             if (message[0] === 'positionChanged') {
@@ -364,6 +375,10 @@ export default class Pdf extends Component {
                  this.props.onPositionChanged && this.props.onPositionChanged(Number(message[1]), Number(message[2]), Number(message[3]), Number(message[4]), Number(message[5]));
                // alert(message[1])
             }
+            else if (message[0] === 'iosPositionChanged') {
+                    console.log('iosPositionChanged', message)
+                    this.props.onIosPositionChanged && this.props.onIosPositionChanged(Number(message[1]), Number(message[2]), Number(message[3]), Number(message[4]), Number(message[5]), Number(message[6]) );
+                }
             else {
                 if (message.length > 5) {
                     message[4] = message.splice(4).join('|');
@@ -389,6 +404,16 @@ export default class Pdf extends Component {
                  else if (message[0] === 'simpleClick') {
                     this.props.onSimpleClick && this.props.onSimpleClick(Number(message[1]), Number(message[2]), Number(message[3]));
                 }
+
+                else if (message[0] === 'annotationClicked') {
+
+                   // alert(1)
+                    this.props.onAnnotationClicked && this.props.onAnnotationClicked(message[1]);
+                }
+
+
+
+
             }
         }
 

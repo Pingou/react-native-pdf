@@ -45,7 +45,8 @@ const float MIN_SCALE = 1.0f;
     float _fixScaleFactor;
     bool _initialed;
     NSArray<NSString *> *_changedProps;
-    
+	bool _initializing;
+	NSTimer *_timerPosition;
 }
 
 - (instancetype)init
@@ -63,7 +64,12 @@ const float MIN_SCALE = 1.0f;
         _enableAnnotationRendering = YES;
         _fitPolicy = 2;
         _spacing = 10;
-        
+		
+		_restoreViewState = @"";
+		_annotations = nil;
+		
+		_timerPosition = nil;
+		
         // init and config PDFView
         _pdfView = [[PDFView alloc] initWithFrame:CGRectMake(0, 0, 500, 500)];
         _pdfView.displayMode = kPDFDisplaySinglePageContinuous;
@@ -74,7 +80,8 @@ const float MIN_SCALE = 1.0f;
         _fixScaleFactor = -1.0f;
         _initialed = NO;
         _changedProps = NULL;
-        
+		_initializing = NO;
+		
         [self addSubview:_pdfView];
         
         
@@ -83,6 +90,7 @@ const float MIN_SCALE = 1.0f;
         [center addObserver:self selector:@selector(onDocumentChanged:) name:PDFViewDocumentChangedNotification object:_pdfView];
         [center addObserver:self selector:@selector(onPageChanged:) name:PDFViewPageChangedNotification object:_pdfView];
         [center addObserver:self selector:@selector(onScaleChanged:) name:PDFViewScaleChangedNotification object:_pdfView];
+	
         
         [[_pdfView document] setDelegate: self];
         
@@ -100,7 +108,9 @@ const float MIN_SCALE = 1.0f;
         _changedProps = changedProps;
         
     } else {
-        
+        if (_initializing == YES)
+			return;
+		_initializing = YES;
         if ([changedProps containsObject:@"path"]) {
             
             NSURL *fileURL = [NSURL fileURLWithPath:_path];
@@ -165,7 +175,14 @@ const float MIN_SCALE = 1.0f;
             if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
                 pdfPageRect = CGRectMake(0, 0, pdfPageRect.size.height, pdfPageRect.size.width);
             }
-            
+			
+			
+			if ([_restoreViewState length] != 0) {
+				NSArray *array = [_restoreViewState componentsSeparatedByString:@"/"];
+				
+				_scale = [array[5] floatValue];
+			}
+			
             if (_fitPolicy == 0) {
                 _fixScaleFactor = self.frame.size.width/pdfPageRect.size.width;
                 _pdfView.scaleFactor = _scale * _fixScaleFactor;
@@ -218,25 +235,102 @@ const float MIN_SCALE = 1.0f;
             }
         }
         
-        if (_pdfDocument && ([changedProps containsObject:@"path"] || [changedProps containsObject:@"enablePaging"] || [changedProps containsObject:@"horizontal"] || [changedProps containsObject:@"page"])) {
-            
+        if (_pdfDocument && ([changedProps containsObject:@"path"] || [changedProps containsObject:@"enablePaging"] || [changedProps containsObject:@"horizontal"] || [changedProps containsObject:@"page"] || [changedProps containsObject:@"restoreViewState"]|| [changedProps containsObject:@"annotations"])) {
+			
+		
+			
+			
+			
+			
             PDFPage *pdfPage = [_pdfDocument pageAtIndex:_page-1];
             if (pdfPage) {
+				
+				
+				
                 CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxCropBox];
                 
                 // some pdf with rotation, then adjust it
                 if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
                     pdfPageRect = CGRectMake(0, 0, pdfPageRect.size.height, pdfPageRect.size.width);
                 }
-                
-                CGPoint pointLeftTop = CGPointMake(0, pdfPageRect.size.height);
+				
+				float left = 0;
+				float top = pdfPageRect.size.height;
+				
+				
+                CGPoint pointLeftTop = CGPointMake(0,  pdfPageRect.size.height);
                 PDFDestination *pdfDest = [[PDFDestination alloc] initWithPage:pdfPage atPoint:pointLeftTop];
+				
                 [_pdfView goToDestination:pdfDest];
-                _pdfView.scaleFactor = _fixScaleFactor*_scale;
+				
+				if ([_restoreViewState length] != 0) {
+					NSArray *array = [_restoreViewState componentsSeparatedByString:@"/"];
+					
+					CGRect targetRect = { {[array[1] floatValue], [array[2] floatValue]}, {[array[3] floatValue], [array[4] floatValue]} };
+					
+					[_pdfView goToRect:targetRect onPage:pdfPage];
+				}
+				
+				
+				//savedRect	CGRect	(origin = (x = 156.29249129685482, y = 318.01580670334749), size = (width = 111.27272811160432, height = 178.46640450750056))
+				
+				
+	
+				
+				
+				_pdfView.scaleFactor = _fixScaleFactor*_scale;
+				
+				int totalPageNb = [_pdfDocument pageCount];
+				
+				int iter = 0;
+				while (iter < totalPageNb) {
+					
+					PDFPage *annotationPage = [_pdfDocument pageAtIndex:iter];
+					
+					NSArray *annotationstmp = [annotationPage annotations];
+					
+					NSMutableArray *annotations = [NSMutableArray arrayWithArray:annotationstmp];
+					for (id object in annotations) {
+						[annotationPage removeAnnotation:object];
+					}
+					iter++;
+				}
+				
+				if (_annotations != nil && [_annotations count] > 0) {
+					for (id object in _annotations) {
+						// do something with object
+						
+						
+						float xPerc = [[object objectForKey:@"x"] floatValue];
+						float yPerc = [[object objectForKey:@"y"] floatValue];
+						
+						long pageNb = [[object objectForKey:@"pageNb"] integerValue];
+						
+						
+						CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxCropBox];
+						
+						float x = pdfPageRect.size.width - (pdfPageRect.size.width * xPerc / 100);
+						float y = pdfPageRect.size.height - (pdfPageRect.size.height * yPerc / 100);
+						
+						CGRect targetRect = { x - 10, y - 10, {20, 20} };
+						
+						PDFPage *annotationPage = [_pdfDocument pageAtIndex:pageNb];
+						PDFAnnotation* annotation = [[PDFAnnotation alloc] initWithBounds:targetRect forType:PDFAnnotationSubtypeText withProperties:nil];
+						 annotation.color = [UIColor colorWithRed:213.0/255.0 green:41.0/255.0 blue:65.0/255.0 alpha:1];
+						 annotation.contents = @"";
+						 annotation.iconType = kPDFTextAnnotationIconNote;
+						 [annotationPage addAnnotation:annotation];
+						
+						
+						
+					}
+				}
+				
             }
         }
         
-        
+		_initializing = NO;
+		
         [_pdfView layoutDocumentView];
         [self setNeedsDisplay];
     }
@@ -262,6 +356,12 @@ const float MIN_SCALE = 1.0f;
     [[NSNotificationCenter defaultCenter] removeObserver:self name:@"PDFViewDocumentChangedNotification" object:nil];
     [[NSNotificationCenter defaultCenter] removeObserver:self name:@"PDFViewPageChangedNotification" object:nil];
     [[NSNotificationCenter defaultCenter] removeObserver:self name:@"PDFViewScaleChangedNotification" object:nil];
+	
+	
+	if (_timerPosition) {
+		[_timerPosition invalidate];
+		_timerPosition = nil;
+	}
     
 }
 
@@ -391,6 +491,8 @@ const float MIN_SCALE = 1.0f;
     }
 }
 
+
+
 #pragma mark gesture process
 
 /**
@@ -418,6 +520,8 @@ const float MIN_SCALE = 1.0f;
     
     [self setNeedsDisplay];
     [self onScaleChanged:Nil];
+	
+	[self didMove];
 }
 
 /**
@@ -432,16 +536,13 @@ const float MIN_SCALE = 1.0f;
     //_pdfView.scaleFactor = _pdfView.minScaleFactor;
     
     CGPoint point = [sender locationInView:self];
-    PDFPage *pdfPage = [_pdfView pageForPoint:point nearest:NO];
-    if (pdfPage) {
-        unsigned long page = [_pdfDocument indexForPage:pdfPage];
-        _onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"pageSingleTap|%lu", page+1]]});
-    }
-    
+	
+	
+	[self annotationClicked:point];
     //[self setNeedsDisplay];
     //[self onScaleChanged:Nil];
     
-    
+	[self didMove];
 }
 
 /**
@@ -452,7 +553,55 @@ const float MIN_SCALE = 1.0f;
  */
 -(void)handlePinch:(UIPinchGestureRecognizer *)sender{
     [self onScaleChanged:Nil];
+	
+	[self didMove];
 }
+
+
+-(BOOL)annotationClicked:(CGPoint)point{
+	
+	PDFPage *pdfPage = [_pdfView pageForPoint:point nearest:NO];
+	if (pdfPage) {
+		unsigned long page = [_pdfDocument indexForPage:pdfPage];
+		
+		point = [_pdfView convertPoint:point toPage:pdfPage];
+		
+		
+		CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxCropBox];
+		
+		
+		
+		
+		if (_annotations != nil && [_annotations count] > 0) {
+			for (id object in _annotations) {
+		
+				long pageNb = [[object objectForKey:@"pageNb"] integerValue];
+				
+				if (pageNb != page)
+					continue;
+				
+				float xPerc = [[object objectForKey:@"x"] floatValue];
+				float yPerc = [[object objectForKey:@"y"] floatValue];
+				
+				float x = pdfPageRect.size.width - (pdfPageRect.size.width * xPerc / 100);
+				float y = pdfPageRect.size.height - (pdfPageRect.size.height * yPerc / 100);
+				
+				NSString *uniqueIdOnClient = [object objectForKey:@"uniqueIdOnClient"];
+				
+				if (pageNb == page && x > point.x - 20 && x < point.x + 20
+					&& y > point.y - 20 && y < point.y + 20)
+				{
+					_onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"annotationClicked|%@|12", uniqueIdOnClient]]});
+					return YES;
+					
+				}
+			}
+		}
+	}
+	
+	return NO;
+}
+
 
 /**
  *  Do nothing on long Press
@@ -460,7 +609,32 @@ const float MIN_SCALE = 1.0f;
  *
  */
 - (void)handleLongPress:(UILongPressGestureRecognizer *)sender{
-    
+	CGPoint point = [sender locationInView:self];
+	
+	PDFPage *pdfPage = [_pdfView pageForPoint:point nearest:NO];
+	if (pdfPage) {
+		
+		
+		if ([self annotationClicked:point] == YES)
+			return;
+		
+		unsigned long page = [_pdfDocument indexForPage:pdfPage];
+		
+		point = [_pdfView convertPoint:point toPage:pdfPage];
+		
+		BOOL canEdit = [_pdfDocument allowsCommenting];
+		
+		
+		CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxCropBox];
+		
+		
+		float x = (pdfPageRect.size.width - point.x) / pdfPageRect.size.width * 100;
+		float y = (pdfPageRect.size.height - point.y) / pdfPageRect.size.height * 100;
+		if (canEdit) {
+		_onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"longClick|%f|%f|%lu", x, y, page]]});
+		}
+	}
+	[self didMove];
 }
 
 /**
@@ -500,8 +674,91 @@ const float MIN_SCALE = 1.0f;
     longPressRecognizer.minimumPressDuration=0.3;
     
     [self addGestureRecognizer:longPressRecognizer];
-    
+	
+	
+	
+	
+	UISwipeGestureRecognizer *swipeLeft = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(didSwipe:)];
+	swipeLeft.direction = UISwipeGestureRecognizerDirectionLeft;
+	[self addGestureRecognizer:swipeLeft];
+	swipeLeft.delegate = self;
+	
+	UISwipeGestureRecognizer *swipeRight = [[UISwipeGestureRecognizer alloc] initWithTarget:self  action:@selector(didSwipe:)];
+	swipeRight.direction = UISwipeGestureRecognizerDirectionRight;
+	[self addGestureRecognizer:swipeRight];
+	swipeRight.delegate = self;
+	
+	UISwipeGestureRecognizer *swipeUp = [[UISwipeGestureRecognizer alloc]  initWithTarget:self action:@selector(didSwipe:)];
+	swipeUp.direction = UISwipeGestureRecognizerDirectionUp;
+	[self addGestureRecognizer:swipeUp];
+	swipeUp.delegate = self;
+	
+	UISwipeGestureRecognizer *swipeDown = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(didSwipe:)];
+	swipeDown.direction = UISwipeGestureRecognizerDirectionDown;
+	[self addGestureRecognizer:swipeDown];
+    swipeDown.delegate = self;
 }
+
+- (void)sendNewPosition
+{
+	
+	PDFPage *page = [_pdfView pageForPoint:CGPointZero nearest:YES];
+	CGRect savedRect = [_pdfView convertRect:_pdfView.bounds toPage:page];
+	
+	
+	//PDFDestination *pdfDestination = [_pdfView currentDestination];
+	
+	//				[_pdfView goToDestination:pdfDestination];
+	
+//	CGPoint newPoint = pdfDestination.point;
+	
+	
+	//float x = newPoint.x;
+	//float y = newPoint.y;
+	
+	unsigned long pageNb = [_pdfDocument indexForPage:page];
+	
+	float zoom = _pdfView.scaleFactor/_fixScaleFactor;
+	//onPositionChanged={(currentPage, pageFocusX, pageFocusY, zoom, positionOffset)
+	_onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"iosPositionChanged|%lu|%f|%f|%f|%f|%f", (pageNb + 1), savedRect.origin.x,  savedRect.origin.y, savedRect.size.width, savedRect.size.height, zoom]]});
+	
+	
+	NSLog(@"sending new pos %f", savedRect.origin.y);
+}
+
+
+- (void)didMove
+{
+	if (_timerPosition) {
+		[_timerPosition invalidate];
+	}
+	_timerPosition = [NSTimer scheduledTimerWithTimeInterval:3.0
+									 target:self
+								   selector:@selector(sendNewPosition)
+								   userInfo:nil
+									repeats:NO];
+	
+	
+	
+}
+
+
+- (void)didSwipe:(UISwipeGestureRecognizer*)swipe{
+	
+	
+	[self didMove];
+	
+	if (swipe.direction == UISwipeGestureRecognizerDirectionLeft) {
+		NSLog(@"Swipe Left");
+	} else if (swipe.direction == UISwipeGestureRecognizerDirectionRight) {
+		NSLog(@"Swipe Right");
+	} else if (swipe.direction == UISwipeGestureRecognizerDirectionUp) {
+		NSLog(@"Swipe Up");
+	} else if (swipe.direction == UISwipeGestureRecognizerDirectionDown) {
+		NSLog(@"Swipe Down");
+	}
+}
+
 
 - (BOOL)gestureRecognizerShouldBegin:(UIGestureRecognizer *)gestureRecognizer
 

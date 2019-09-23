@@ -256,7 +256,6 @@ export default class PdfView extends Component {
         }
         this.setState({scale: newScale, newContentOffset: newContentOffset});
         this.props.onScaleChanged(newScale);
-        alert(JSON.stringify(newContentOffset))
     };
 
     _renderItem = ({item, index}) => {

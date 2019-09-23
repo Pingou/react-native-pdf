@@ -40,6 +40,8 @@ RCT_EXPORT_VIEW_PROPERTY(fitPolicy, int);
 RCT_EXPORT_VIEW_PROPERTY(spacing, int);
 RCT_EXPORT_VIEW_PROPERTY(password, NSString);
 RCT_EXPORT_VIEW_PROPERTY(onChange, RCTBubblingEventBlock);
+RCT_EXPORT_VIEW_PROPERTY(restoreViewState, NSString);
+RCT_EXPORT_VIEW_PROPERTY(annotations, NSArray);
 
 RCT_EXPORT_METHOD(supportPDFKit:(RCTResponseSenderBlock)callback)
 {
