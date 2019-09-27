@@ -315,13 +315,16 @@ const float MIN_SCALE = 1.0f;
 						CGRect targetRect = { x - 10, y - 10, {20, 20} };
 						
 						PDFPage *annotationPage = [_pdfDocument pageAtIndex:pageNb];
-						PDFAnnotation* annotation = [[PDFAnnotation alloc] initWithBounds:targetRect forType:PDFAnnotationSubtypeText withProperties:nil];
+						PDFAnnotation* annotation = [[PDFAnnotation alloc] initWithBounds:targetRect forType:PDFAnnotationSubtypeFreeText withProperties:nil];
 						 annotation.color = [UIColor colorWithRed:213.0/255.0 green:41.0/255.0 blue:65.0/255.0 alpha:1];
-						 annotation.contents = @"";
+						 annotation.contents = @" ";
 						 annotation.iconType = kPDFTextAnnotationIconNote;
 						 [annotationPage addAnnotation:annotation];
 						
+						/*if (@available(iOS 13, *)) {
+							[annotation setAccessibilityRespondsToUserInteraction:NO];
 						
+							[annotation setAction:nil];}*/
 						
 					}
 				}
