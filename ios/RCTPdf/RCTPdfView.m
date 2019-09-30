@@ -34,7 +34,7 @@
 // output log both debug and release
 #define RLog( s, ... ) NSLog( @"<%p %@:(%d)> %@", self, [[NSString stringWithUTF8String:__FILE__] lastPathComponent], __LINE__, [NSString stringWithFormat:(s), ##__VA_ARGS__] )
 
-const float MAX_SCALE = 3.0f;
+const float MAX_SCALE = 30.0f;
 const float MIN_SCALE = 1.0f;
 
 @implementation RCTPdfView
@@ -95,6 +95,8 @@ const float MIN_SCALE = 1.0f;
         [[_pdfView document] setDelegate: self];
         
         
+		
+		
         [self bindTap];
     }
     
@@ -321,6 +323,8 @@ const float MIN_SCALE = 1.0f;
 						 annotation.iconType = kPDFTextAnnotationIconNote;
 						 [annotationPage addAnnotation:annotation];
 						
+						
+						
 						/*if (@available(iOS 13, *)) {
 							[annotation setAccessibilityRespondsToUserInteraction:NO];
 						
@@ -331,7 +335,11 @@ const float MIN_SCALE = 1.0f;
 				
             }
         }
-        
+		/*if (@available(iOS 12, *)) {
+			[_pdfView enablePageShadows:NO];
+		}
+		[_pdfView setEnableDataDetectors:NO];
+        [_pdfView setGestureRecognizers:nil];*/
 		_initializing = NO;
 		
         [_pdfView layoutDocumentView];
@@ -486,7 +494,7 @@ const float MIN_SCALE = 1.0f;
 - (void)onScaleChanged:(NSNotification *)noti
 {
     
-    if (_initialed && _fixScaleFactor>0) {
+    if (_initialed && _fixScaleFactor>0 && _initializing == NO) {
         if (_scale != _pdfView.scaleFactor/_fixScaleFactor) {
             _scale = _pdfView.scaleFactor/_fixScaleFactor;
             _onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"scaleChanged|%f", _scale]]});
@@ -507,9 +515,9 @@ const float MIN_SCALE = 1.0f;
 - (void)handleDoubleTap:(UITapGestureRecognizer *)recognizer
 {
     // Cycle through min/mid/max scale factors to be consistent with Android
-    float min = _pdfView.minScaleFactor/_fixScaleFactor;
-    float max = _pdfView.maxScaleFactor/_fixScaleFactor;
-    float mid = (max - min) / 2 + min;
+    float min = 1.0f;
+    float max = 4.0f;
+    float mid = 2.0f;
     float scale = _scale;
     if (_scale < mid) {
         scale = mid;
@@ -735,7 +743,7 @@ const float MIN_SCALE = 1.0f;
 	if (_timerPosition) {
 		[_timerPosition invalidate];
 	}
-	_timerPosition = [NSTimer scheduledTimerWithTimeInterval:3.0
+	_timerPosition = [NSTimer scheduledTimerWithTimeInterval:1.0
 									 target:self
 								   selector:@selector(sendNewPosition)
 								   userInfo:nil
