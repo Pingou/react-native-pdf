@@ -255,15 +255,7 @@ const float MIN_SCALE = 1.0f;
                 if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
                     pdfPageRect = CGRectMake(0, 0, pdfPageRect.size.height, pdfPageRect.size.width);
                 }
-				
-				float left = 0;
-				float top = pdfPageRect.size.height;
-				
-				
-                CGPoint pointLeftTop = CGPointMake(0,  pdfPageRect.size.height);
-                PDFDestination *pdfDest = [[PDFDestination alloc] initWithPage:pdfPage atPoint:pointLeftTop];
-				
-                [_pdfView goToDestination:pdfDest];
+				 
 				
 				if ([_restoreViewState length] != 0) {
 					NSArray *array = [_restoreViewState componentsSeparatedByString:@"/"];
@@ -272,7 +264,11 @@ const float MIN_SCALE = 1.0f;
 					
 					[_pdfView goToRect:targetRect onPage:pdfPage];
 				}
-				
+				else {
+					CGPoint pointLeftTop = CGPointMake(0,  pdfPageRect.size.height);
+					PDFDestination *pdfDest = [[PDFDestination alloc] initWithPage:pdfPage atPoint:pointLeftTop];
+					[_pdfView goToDestination:pdfDest];
+				}
 				
 				//savedRect	CGRect	(origin = (x = 156.29249129685482, y = 318.01580670334749), size = (width = 111.27272811160432, height = 178.46640450750056))
 				
@@ -296,6 +292,8 @@ const float MIN_SCALE = 1.0f;
 						[annotationPage removeAnnotation:object];
 					}
 					iter++;
+					
+					
 				}
 				
 				if (_annotations != nil && [_annotations count] > 0) {
@@ -316,11 +314,12 @@ const float MIN_SCALE = 1.0f;
 						
 						CGRect targetRect = { x - 10, y - 10, {20, 20} };
 						
+						
 						PDFPage *annotationPage = [_pdfDocument pageAtIndex:pageNb];
 						PDFAnnotation* annotation = [[PDFAnnotation alloc] initWithBounds:targetRect forType:PDFAnnotationSubtypeFreeText withProperties:nil];
 						 annotation.color = [UIColor colorWithRed:213.0/255.0 green:41.0/255.0 blue:65.0/255.0 alpha:1];
 						 annotation.contents = @" ";
-						 annotation.iconType = kPDFTextAnnotationIconNote;
+						// annotation.iconType = kPDFTextAnnotationIconNote;
 						 [annotationPage addAnnotation:annotation];
 						
 						
@@ -581,9 +580,7 @@ const float MIN_SCALE = 1.0f;
 		CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxCropBox];
 		
 		
-		
-		
-		if (_annotations != nil && [_annotations count] > 0) {
+		if (_annotations && [_annotations count] > 0) {
 			for (id object in _annotations) {
 		
 				long pageNb = [[object objectForKey:@"pageNb"] integerValue];
@@ -624,7 +621,6 @@ const float MIN_SCALE = 1.0f;
 	
 	PDFPage *pdfPage = [_pdfView pageForPoint:point nearest:NO];
 	if (pdfPage) {
-		
 		
 		if ([self annotationClicked:point] == YES)
 			return;
@@ -714,18 +710,11 @@ const float MIN_SCALE = 1.0f;
 {
 	
 	PDFPage *page = [_pdfView pageForPoint:CGPointZero nearest:YES];
+	
+	if (!page)
+		return;
+	
 	CGRect savedRect = [_pdfView convertRect:_pdfView.bounds toPage:page];
-	
-	
-	//PDFDestination *pdfDestination = [_pdfView currentDestination];
-	
-	//				[_pdfView goToDestination:pdfDestination];
-	
-//	CGPoint newPoint = pdfDestination.point;
-	
-	
-	//float x = newPoint.x;
-	//float y = newPoint.y;
 	
 	unsigned long pageNb = [_pdfDocument indexForPage:page];
 	
@@ -734,7 +723,7 @@ const float MIN_SCALE = 1.0f;
 	_onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"iosPositionChanged|%lu|%f|%f|%f|%f|%f", (pageNb + 1), savedRect.origin.x,  savedRect.origin.y, savedRect.size.width, savedRect.size.height, zoom]]});
 	
 	
-	NSLog(@"sending new pos %f", savedRect.origin.y);
+//	NSLog(@"sending new pos %f", savedRect.origin.y);
 }
 
 
@@ -758,16 +747,6 @@ const float MIN_SCALE = 1.0f;
 	
 	
 	[self didMove];
-	
-	if (swipe.direction == UISwipeGestureRecognizerDirectionLeft) {
-		NSLog(@"Swipe Left");
-	} else if (swipe.direction == UISwipeGestureRecognizerDirectionRight) {
-		NSLog(@"Swipe Right");
-	} else if (swipe.direction == UISwipeGestureRecognizerDirectionUp) {
-		NSLog(@"Swipe Up");
-	} else if (swipe.direction == UISwipeGestureRecognizerDirectionDown) {
-		NSLog(@"Swipe Down");
-	}
 }
 
 

@@ -34,8 +34,8 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface RCTPdfView : UIView <UIGestureRecognizer
 @property(nonatomic) int fitPolicy;
 @property(nonatomic) int spacing;
 @property(nonatomic, strong) NSString *password;
-@property(nonatomic, strong) NSString *restoreViewState;
-@property(nonatomic, strong) NSArray *annotations;
+@property(nonatomic) NSString *restoreViewState;
+@property(nonatomic) NSArray *annotations;
 
 @property(nonatomic, copy) RCTBubblingEventBlock onChange;
 
