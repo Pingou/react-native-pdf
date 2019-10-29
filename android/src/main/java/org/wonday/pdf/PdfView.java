@@ -57,6 +57,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ClassCastException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import com.shockwave.pdfium.PdfDocument;
@@ -87,6 +88,11 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
     private float lastPageWidth = 0;
     private float lastPageHeight = 0;
+
+   // private boolean loadComplete = false;
+   // private long lastLoadingTime = 0;
+   private String lastPath;
+    private PdfViewState savedViewState = null;
 
     public static class PdfAnnotation {
         public int x;
@@ -197,13 +203,15 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
     @Override
     public void loadComplete(int numberOfPages) {
-
         float width = this.getWidth();
         float height = this.getHeight();
         
         this.zoomTo(this.scale);
         WritableMap event = Arguments.createMap();
-        
+
+       // this.lastLoadingTime = new Date().getTime();
+        showLog("ploup load complete");
+       // this.loadComplete = true;
         //create a new jason Object for the TableofContents
         Gson gson = new Gson();
         event.putString("message", "loadComplete|"+numberOfPages+"|"+width+"|"+height+"|"+gson.toJson(this.getTableOfContents()));
@@ -397,10 +405,17 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
     }
 
     public void drawPdf() {
-        showLog(format("drawPdf path:%s %s", this.path, this.page));
+
+
+      //  this.loadComplete = false;
+        showLog(format("ploup drawPdf path:%s %s ", this.path, this.page));
+
 
         if (this.path != null){
 
+            if (this.savedViewState != null && this.path.equals(this.lastPath))
+                this.setRestoredState(this.savedViewState);
+            this.lastPath = this.path;
             // set scale
             this.setMinZoom(this.minScale);
             this.setMaxZoom(this.maxScale);
@@ -505,14 +520,16 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
     public void sendCurrentViewState() {
 
+      //  if (this.lastLoadingTime + 2000 > new Date().getTime())
+       //     return;
+      //  showLog("ploup sendCurrentViewState plop" + this.loadComplete);
+        this.savedViewState = this.getCurrentViewState();
 
-        PdfViewState pdfViewState = this.getCurrentViewState();
-
-        if (pdfViewState == null)
+        if (this.savedViewState == null)
             return;
         WritableMap event = Arguments.createMap();
 
-        event.putString("message", "positionChanged|"+pdfViewState.currentPage+"|"+pdfViewState.pageFocusX+"|"+pdfViewState.pageFocusY+"|"+pdfViewState.zoom + "|" + this.getPositionOffset());
+        event.putString("message", "positionChanged|"+this.savedViewState.currentPage+"|"+this.savedViewState.pageFocusX+"|"+this.savedViewState.pageFocusY+"|"+this.savedViewState.zoom + "|" + this.getPositionOffset());
 
         ReactContext reactContext = (ReactContext)this.getContext();
         reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(
@@ -524,9 +541,10 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
     }
 
     public void restoreViewState(int currentPage, float pageFocusX, float pageFocusY, float zoom) {
-        PdfViewState pdfViewState = new PdfViewState(currentPage, pageFocusX, pageFocusY, zoom);
+        showLog("ploup restoreViewState");
+        this.savedViewState = new PdfViewState(currentPage, pageFocusX, pageFocusY, zoom);
 
-        this.setRestoredState(pdfViewState);
+        this.setRestoredState(this.savedViewState);
     }
 
     private void showLog(final String str) {

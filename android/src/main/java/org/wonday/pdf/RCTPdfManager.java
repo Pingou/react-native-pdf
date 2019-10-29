@@ -127,7 +127,7 @@ public class RCTPdfManager extends SimpleViewManager<PdfView> {
 
     @ReactProp(name = "restoreViewState")
     public void restoreViewState(PdfView pdfView, String values) {
-
+        Log.d("PdfView", "ploup calling restoreViewState");
         if (values == null || values.length() == 0)
             return;
         String[] valuesTab = values.split("/");
