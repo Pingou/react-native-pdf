@@ -387,20 +387,26 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
     }
 
     private PdfAnnotation getPercentPosForPage(int x, int y, int page) {
-        float xPositionInRealScale = instance.toRealScale(-instance.getCurrentXOffset() + x);
-        float yPositionInRealScale = instance.toRealScale(-instance.getCurrentYOffset() + y);
+        float xPer = 0;
+        float yPer = 0;
+        try {
+            float xPositionInRealScale = instance.toRealScale(-instance.getCurrentXOffset() + x);
+            float yPositionInRealScale = instance.toRealScale(-instance.getCurrentYOffset() + y);
 
-        if (instance.isSwipeVertical()) {
-            xPositionInRealScale = xPositionInRealScale - instance.getSecondaryPageOffset(page, 1);
-            yPositionInRealScale = yPositionInRealScale - instance.getPageOffset(page, 1);
-        } else {
-            xPositionInRealScale = xPositionInRealScale - instance.getPageOffset(page, 1);
-            yPositionInRealScale = yPositionInRealScale - instance.getSecondaryPageOffset(page, 1);
+            if (instance.isSwipeVertical()) {
+                xPositionInRealScale = xPositionInRealScale - instance.getSecondaryPageOffset(page, 1);
+                yPositionInRealScale = yPositionInRealScale - instance.getPageOffset(page, 1);
+            } else {
+                xPositionInRealScale = xPositionInRealScale - instance.getPageOffset(page, 1);
+                yPositionInRealScale = yPositionInRealScale - instance.getSecondaryPageOffset(page, 1);
+            }
+
+            xPer = xPositionInRealScale / instance.getPageSize(page).getWidth() * 100;
+            yPer = yPositionInRealScale / instance.getPageSize(page).getHeight() * 100;
         }
+        catch (Exception e) {
 
-        float xPer = xPositionInRealScale / instance.getPageSize(page).getWidth() * 100;
-        float yPer = yPositionInRealScale / instance.getPageSize(page).getHeight() * 100;
-
+        }
         return new PdfAnnotation(Math.round(xPer), Math.round(yPer), page);
     }
 
