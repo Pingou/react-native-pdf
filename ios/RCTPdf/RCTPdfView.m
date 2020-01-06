@@ -667,6 +667,7 @@ const float MIN_SCALE = 1.0f;
     
     [self addGestureRecognizer:singleTapRecognizer];
     [singleTapRecognizer requireGestureRecognizerToFail:doubleTapRecognizer];
+    singleTapRecognizer.delegate = self;
     
     UIPinchGestureRecognizer *pinchRecognizer = [[UIPinchGestureRecognizer alloc] initWithTarget:self
                                                                                           action:@selector(handlePinch:)];
@@ -732,7 +733,7 @@ const float MIN_SCALE = 1.0f;
 	if (_timerPosition) {
 		[_timerPosition invalidate];
 	}
-	_timerPosition = [NSTimer scheduledTimerWithTimeInterval:1.0
+	_timerPosition = [NSTimer scheduledTimerWithTimeInterval:0.5
 									 target:self
 								   selector:@selector(sendNewPosition)
 								   userInfo:nil
