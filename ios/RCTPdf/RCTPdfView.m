@@ -168,7 +168,7 @@ const float MIN_SCALE = 1.0f;
             }
         }
         
-        if (_pdfDocument && ([changedProps containsObject:@"path"] || [changedProps containsObject:@"fitPolicy"] || [changedProps containsObject:@"minScale"] || [changedProps containsObject:@"maxScale"])) {
+        if (_pdfDocument && ([changedProps containsObject:@"path"] || [changedProps containsObject:@"fitPolicy"] || [changedProps containsObject:@"minScale"] || [changedProps containsObject:@"maxScale"] || [changedProps containsObject:@"restoreViewState"])) {
             
             PDFPage *pdfPage = [_pdfDocument pageAtIndex:_pdfDocument.pageCount-1];
             CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxCropBox];
@@ -183,6 +183,9 @@ const float MIN_SCALE = 1.0f;
 				NSArray *array = [_restoreViewState componentsSeparatedByString:@"/"];
 				
 				_scale = [array[5] floatValue];
+                _fixScaleFactor = -1.0f;
+                _minScale = MIN_SCALE;
+                _maxScale = MAX_SCALE;
 			}
 			
             if (_fitPolicy == 0) {
