@@ -37,10 +37,58 @@
 const float MAX_SCALE = 30.0f;
 const float MIN_SCALE = 1.0f;
 
+
+NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
+   
+}
+@end
+
+@implementation MyPDFView
+
+- (void)addGestureRecognizer:(UIGestureRecognizer *)gestureRecognizer
+{
+    if ([gestureRecognizer isKindOfClass:[UITapGestureRecognizer class]])
+    {
+        UITapGestureRecognizer *tapGest = (UITapGestureRecognizer*)gestureRecognizer;
+        if (tapGest.numberOfTapsRequired == 2)
+        {
+            return;
+        }
+        
+    }
+
+    [super addGestureRecognizer:gestureRecognizer];
+}
+
+
+- (void)addGestureRecognizer2:(UIGestureRecognizer *)gestureRecognizer
+{
+    
+ 
+    [super addGestureRecognizer:gestureRecognizer];
+}
+
+
+- (BOOL)gestureRecognizerShouldBegin:(UIGestureRecognizer *)gestureRecognizer
+
+{
+    if (@available(iOS 13, *)) {
+        return YES;
+    }
+    return NO;
+}
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer
+{
+    return YES;
+}
+
+@end
+
 @implementation RCTPdfView
 {
     PDFDocument *_pdfDocument;
-    PDFView *_pdfView;
+    MyPDFView *_pdfView;
     PDFOutline *root;
     float _fixScaleFactor;
     bool _initialed;
@@ -52,6 +100,8 @@ const float MIN_SCALE = 1.0f;
 - (instancetype)init
 {
     self = [super init];
+    
+    NSLog(@"HELLO THERE");
     if (self) {
         
         _page = 1;
@@ -71,7 +121,7 @@ const float MIN_SCALE = 1.0f;
 		_timerPosition = nil;
 		
         // init and config PDFView
-        _pdfView = [[PDFView alloc] initWithFrame:CGRectMake(0, 0, 500, 500)];
+        _pdfView = [[MyPDFView alloc] initWithFrame:CGRectMake(0, 0, 500, 500)];
         _pdfView.displayMode = kPDFDisplaySinglePageContinuous;
         _pdfView.autoScales = YES;
         _pdfView.displaysPageBreaks = YES;
@@ -570,6 +620,17 @@ const float MIN_SCALE = 1.0f;
 	[self didMove];
 }
 
+/**
+ *  Pinch
+ *
+ *
+ *  @param recognizer
+ */
+-(void)handlePan:(UIPanGestureRecognizer *)sender{
+    [self onScaleChanged:Nil];
+    
+    [self didMove];
+}
 
 -(BOOL)annotationClicked:(CGPoint)point{
 	
@@ -647,6 +708,9 @@ const float MIN_SCALE = 1.0f;
 	[self didMove];
 }
 
+
+
+
 /**
  *  Bind tap
  *
@@ -659,23 +723,28 @@ const float MIN_SCALE = 1.0f;
     //trigger by one finger and double touch
     doubleTapRecognizer.numberOfTapsRequired = 2;
     doubleTapRecognizer.numberOfTouchesRequired = 1;
-    
-    [self addGestureRecognizer:doubleTapRecognizer];
-    
+
+    [_pdfView addGestureRecognizer2:doubleTapRecognizer];
+    doubleTapRecognizer.delegate = self;
     UITapGestureRecognizer *singleTapRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self
                                                                                           action:@selector(handleSingleTap:)];
     //trigger by one finger and one touch
     singleTapRecognizer.numberOfTapsRequired = 1;
     singleTapRecognizer.numberOfTouchesRequired = 1;
     
-    [self addGestureRecognizer:singleTapRecognizer];
-    [singleTapRecognizer requireGestureRecognizerToFail:doubleTapRecognizer];
+    [_pdfView addGestureRecognizer2:singleTapRecognizer];
+   // [singleTapRecognizer requireGestureRecognizerToFail:doubleTapRecognizer];
     singleTapRecognizer.delegate = self;
     
     UIPinchGestureRecognizer *pinchRecognizer = [[UIPinchGestureRecognizer alloc] initWithTarget:self
                                                                                           action:@selector(handlePinch:)];
     [self addGestureRecognizer:pinchRecognizer];
     pinchRecognizer.delegate = self;
+    
+//    UIPanGestureRecognizer *panRecognizer = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
+//    [_pdfView addGestureRecognizer2:panRecognizer];
+//    panRecognizer.delegate = self;
+//
     
     UILongPressGestureRecognizer *longPressRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self
                                                                                             action:@selector(handleLongPress:)];
@@ -684,29 +753,29 @@ const float MIN_SCALE = 1.0f;
     // Important: The duration must be long enough to allow taps but not longer than the period in which view opens the magnifying glass
     longPressRecognizer.minimumPressDuration=0.3;
     
-    [self addGestureRecognizer:longPressRecognizer];
+    [_pdfView addGestureRecognizer2:longPressRecognizer];
 	
 	
 	
 	
 	UISwipeGestureRecognizer *swipeLeft = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(didSwipe:)];
 	swipeLeft.direction = UISwipeGestureRecognizerDirectionLeft;
-	[self addGestureRecognizer:swipeLeft];
+	[_pdfView addGestureRecognizer2:swipeLeft];
 	swipeLeft.delegate = self;
 	
 	UISwipeGestureRecognizer *swipeRight = [[UISwipeGestureRecognizer alloc] initWithTarget:self  action:@selector(didSwipe:)];
 	swipeRight.direction = UISwipeGestureRecognizerDirectionRight;
-	[self addGestureRecognizer:swipeRight];
+	[_pdfView addGestureRecognizer2:swipeRight];
 	swipeRight.delegate = self;
 	
 	UISwipeGestureRecognizer *swipeUp = [[UISwipeGestureRecognizer alloc]  initWithTarget:self action:@selector(didSwipe:)];
 	swipeUp.direction = UISwipeGestureRecognizerDirectionUp;
-	[self addGestureRecognizer:swipeUp];
+	[_pdfView addGestureRecognizer2:swipeUp];
 	swipeUp.delegate = self;
 	
 	UISwipeGestureRecognizer *swipeDown = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(didSwipe:)];
 	swipeDown.direction = UISwipeGestureRecognizerDirectionDown;
-	[self addGestureRecognizer:swipeDown];
+	[_pdfView addGestureRecognizer2:swipeDown];
     swipeDown.delegate = self;
 }
 
