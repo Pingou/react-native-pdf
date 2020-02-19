@@ -346,6 +346,15 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                     Paint paint = new Paint();
                     paint.setColor(Color.RED);
 
+                    float paddingX = 0.0f;
+                    
+                    if (instance.isSwipeVertical()) {
+                        paddingX = instance.getSecondaryPageOffset(pdfAnnotation.pageNb, this.getZoom());
+                    }
+                    else {
+                        paddingX = instance.getPageOffset(pdfAnnotation.pageNb, this.getZoom());
+                    }
+
                                     /*RectF img = new RectF(pageWidth * (pdfAnnotation.x / 100.0f),
                                             pageHeight * (pdfAnnotation.y / 100.0f),
                                             pageWidth * (pdfAnnotation.x / 100.0f) + 20,
@@ -355,7 +364,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
                     Bitmap bitmap = getAnnotationBitmap((int) instance.getZoom());
                     canvas.drawBitmap(bitmap
-                            , pageWidth * (pdfAnnotation.x / 100.0f) - (bitmap.getWidth() / 2)
+                            , pageWidth * (pdfAnnotation.x / 100.0f) - (bitmap.getWidth() / 2) + paddingX
                             , pageHeight * (pdfAnnotation.y / 100.0f) - (bitmap.getHeight() / 2)
                             , null);
                 }
