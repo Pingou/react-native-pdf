@@ -384,7 +384,7 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 						
 					}
 				}
-				
+				[_pdfView setNeedsDisplay];
             }
         }
 		/*if (@available(iOS 12, *)) {
