@@ -297,7 +297,11 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 			
 			
 			
-            PDFPage *pdfPage = [_pdfDocument pageAtIndex:_page-1];
+            PDFPage *pdfPage = nil;
+            if (_page == -1)
+                pdfPage = [_pdfDocument pageAtIndex:0];
+            else
+                pdfPage = [_pdfDocument pageAtIndex:_page - 1];
             if (pdfPage) {
 				
 				
@@ -384,7 +388,7 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 						
 					}
 				}
-				[_pdfView setNeedsDisplay];
+				
             }
         }
 		/*if (@available(iOS 12, *)) {
