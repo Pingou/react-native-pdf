@@ -289,14 +289,10 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
                 [_pdfView usePageViewController:NO withViewOptions:Nil];
             }
         }
-        
+       
         if (_pdfDocument && ([changedProps containsObject:@"path"] || [changedProps containsObject:@"enablePaging"] || [changedProps containsObject:@"horizontal"] || [changedProps containsObject:@"page"] || [changedProps containsObject:@"restoreViewState"]|| [changedProps containsObject:@"annotations"])) {
 			
-		
-			
-			
-			
-			
+            
             PDFPage *pdfPage = nil;
             if (_page == -1)
                 pdfPage = [_pdfDocument pageAtIndex:0];
@@ -363,21 +359,32 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 						
 						long pageNb = [[object objectForKey:@"pageNb"] integerValue];
 						
-						
+                        NSString *title = [[object objectForKey:@"title"] stringValue];
+						NSString *color = [[object objectForKey:@"color"] stringValue];
+                        NSString *icon = [[object objectForKey:@"icon"] stringValue];
+                        
 						CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxCropBox];
 						
 						float x = pdfPageRect.size.width - (pdfPageRect.size.width * xPerc / 100);
 						float y = pdfPageRect.size.height - (pdfPageRect.size.height * yPerc / 100);
 						
-						CGRect targetRect = { x - 10, y - 10, {20, 20} };
+                        float width = pdfPageRect.size.width - x + 10;
+                        if (width > 200) {
+                           width = 200;
+                        }
+                        float height = 200;
+                        CGRect targetRect = { x - 5, y - (height - 10), {width, height} };
 						
 						
 						PDFPage *annotationPage = [_pdfDocument pageAtIndex:pageNb];
 						PDFAnnotation* annotation = [[PDFAnnotation alloc] initWithBounds:targetRect forType:PDFAnnotationSubtypeFreeText withProperties:nil];
-						 annotation.color = [UIColor colorWithRed:213.0/255.0 green:41.0/255.0 blue:65.0/255.0 alpha:1];
-						 annotation.contents = @" ";
+						 annotation.color = [UIColor colorWithRed:213.0/255.0 green:41.0/255.0 blue:65.0/255.0 alpha:0];
+                        annotation.font = [UIFont fontWithName:@"ArialMT" size:14.0];
+                        annotation.multiline = true;
+                        annotation.fontColor = [self getUIColorObjectFromHexString:color alpha:1];
+                        annotation.contents = [NSString stringWithFormat:@"%@%@", icon, title];
 						// annotation.iconType = kPDFTextAnnotationIconNote;
-						 [annotationPage addAnnotation:annotation];
+                        [annotationPage addAnnotation:annotation];
 						
 						
 						
@@ -388,6 +395,7 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 						
 					}
 				}
+                
 				
             }
         }
@@ -447,6 +455,40 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
     }
     
 }
+
+- (unsigned int)intFromHexString:(NSString *)hexStr
+{
+  unsigned int hexInt = 0;
+
+  // Create scanner
+  NSScanner *scanner = [NSScanner scannerWithString:hexStr];
+
+  // Tell scanner to skip the # character
+  [scanner setCharactersToBeSkipped:[NSCharacterSet characterSetWithCharactersInString:@"#"]];
+
+  // Scan hex value
+  [scanner scanHexInt:&hexInt];
+
+  return hexInt;
+}
+
+- (UIColor *)getUIColorObjectFromHexString:(NSString *)hexStr alpha:(CGFloat)alpha
+{
+  // Convert hex string to an integer
+  unsigned int hexint = [self intFromHexString:hexStr];
+
+  // Create a color object, specifying alpha as well
+  UIColor *color =
+    [UIColor colorWithRed:((CGFloat) ((hexint & 0xFF0000) >> 16))/255
+    green:((CGFloat) ((hexint & 0xFF00) >> 8))/255
+    blue:((CGFloat) (hexint & 0xFF))/255
+    alpha:alpha];
+
+  return color;
+}
+
+
+
 
 -(NSString *) getTableContents
 {

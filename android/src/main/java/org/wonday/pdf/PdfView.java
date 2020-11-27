@@ -15,6 +15,9 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.text.Layout;
+import android.text.StaticLayout;
+import android.text.TextPaint;
 import android.view.View;
 import android.view.ViewGroup;
 import android.util.Log;
@@ -98,15 +101,26 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
         public int x;
         public int y;
         public int pageNb;
+        public String title;
+        public String color;
+        public String icon;
 
         public PdfAnnotation() {
 
         }
-
         public PdfAnnotation(int x, int y, int pageNb) {
             this.x = x;
             this.y = y;
             this.pageNb = pageNb;
+        }
+        public PdfAnnotation(int x, int y, int pageNb, String title, String color, String icon) {
+            this.x = x;
+            this.y = y;
+            this.pageNb = pageNb;
+
+            this.title = title;
+            this.color = color;
+            this.icon = icon;
         }
     }
 
@@ -355,18 +369,47 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                         paddingX = instance.getPageOffset(pdfAnnotation.pageNb, this.getZoom());
                     }
 
-                                    /*RectF img = new RectF(pageWidth * (pdfAnnotation.x / 100.0f),
-                                            pageHeight * (pdfAnnotation.y / 100.0f),
-                                            pageWidth * (pdfAnnotation.x / 100.0f) + 20,
-                                            pageHeight * (pdfAnnotation.y / 100.0f) + 20);
-                                    canvas.drawRect(img, paint);*/
-
-
+                    /*
                     Bitmap bitmap = getAnnotationBitmap((int) instance.getZoom());
                     canvas.drawBitmap(bitmap
                             , pageWidth * (pdfAnnotation.x / 100.0f) - (bitmap.getWidth() / 2) + paddingX
                             , pageHeight * (pdfAnnotation.y / 100.0f) - (bitmap.getHeight() / 2)
                             , null);
+                    */
+                    TextPaint textPaint = new TextPaint();
+                    textPaint.setColor(Color.parseColor(pdfAnnotation.color));
+                    textPaint.setTextSize(25 * instance.getZoom());
+
+                   /* canvas.drawText(pdfAnnotation.text,
+                            pageWidth * (pdfAnnotation.x / 100.0f) - (bitmap.getWidth() / 2) + paddingX,
+                            pageHeight * (pdfAnnotation.y / 100.0f) - (bitmap.getHeight() / 2),
+                            textPaint);
+*/
+
+                    int textWidth = (int)((canvas.getWidth() - (int) (canvas.getWidth() * (pdfAnnotation.x / 100.0f))) * instance.getZoom());
+
+                    Log.d("PdfView canvaswidth=", canvas.getWidth() + ": pageWidth=" + pageWidth + " x=" + pdfAnnotation.x + " textwidth:" + textWidth );
+                    if (textWidth < 40)
+                        textWidth = 40;
+                    // init StaticLayout for text
+                    StaticLayout textLayout = new StaticLayout(
+                            pdfAnnotation.icon + " " + pdfAnnotation.title, textPaint, textWidth, Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
+
+                    // get height of multiline text
+                    int textHeight = textLayout.getHeight();
+
+
+                    // get position of text's top left corner
+                    float x = pageWidth * (pdfAnnotation.x / 100.0f) + paddingX;
+                    float y = pageHeight * (pdfAnnotation.y / 100.0f);
+
+                    // draw text to the Canvas center
+                    canvas.save();
+                    canvas.translate(x, y);
+                    textLayout.draw(canvas);
+                    canvas.restore();
+
+
                 }
             }
         }
