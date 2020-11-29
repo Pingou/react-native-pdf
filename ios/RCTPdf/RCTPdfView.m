@@ -379,7 +379,7 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 						PDFPage *annotationPage = [_pdfDocument pageAtIndex:pageNb];
 						PDFAnnotation* annotation = [[PDFAnnotation alloc] initWithBounds:targetRect forType:PDFAnnotationSubtypeFreeText withProperties:nil];
 						 annotation.color = [UIColor colorWithRed:213.0/255.0 green:41.0/255.0 blue:65.0/255.0 alpha:0];
-                        annotation.font = [UIFont fontWithName:@"ArialMT" size:14.0];
+                        annotation.font = [UIFont fontWithName:@"ArialMT" size:13.0];
                         annotation.multiline = true;
                         annotation.fontColor = [self getUIColorObjectFromHexString:color alpha:1];
                         annotation.contents = [NSString stringWithFormat:@"%@%@", icon, title];
