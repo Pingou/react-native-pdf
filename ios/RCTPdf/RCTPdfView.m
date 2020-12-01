@@ -720,6 +720,40 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 	return NO;
 }
 
+- (void) ShowAlert:(NSString *)Message {
+    UIAlertController * alert=[UIAlertController alertControllerWithTitle:nil
+                                                                  message:@""
+                                                           preferredStyle:UIAlertControllerStyleAlert];
+    UIView *firstSubview = alert.view.subviews.firstObject;
+    UIView *alertContentView = firstSubview.subviews.firstObject;
+    for (UIView *subSubView in alertContentView.subviews) {
+        subSubView.backgroundColor = [UIColor colorWithRed:141/255.0f green:0/255.0f blue:254/255.0f alpha:1.0f];
+    }
+    NSMutableAttributedString *AS = [[NSMutableAttributedString alloc] initWithString:Message];
+    [AS addAttribute: NSForegroundColorAttributeName value: [UIColor whiteColor] range: NSMakeRange(0,AS.length)];
+    [alert setValue:AS forKey:@"attributedTitle"];
+    UIViewController *viewController = [[[[UIApplication sharedApplication] delegate] window] rootViewController];
+    if ( viewController.presentedViewController && !viewController.presentedViewController.isBeingDismissed ) {
+        viewController = viewController.presentedViewController;
+    }
+
+    NSLayoutConstraint *constraint = [NSLayoutConstraint
+        constraintWithItem:alert.view
+        attribute:NSLayoutAttributeHeight
+        relatedBy:NSLayoutRelationLessThanOrEqual
+        toItem:nil
+        attribute:NSLayoutAttributeNotAnAttribute
+        multiplier:1
+        constant:viewController.view.frame.size.height*2.0f];
+
+    [alert.view addConstraint:constraint];
+    [viewController presentViewController:alert animated:YES completion:^{}];
+    
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [viewController dismissViewControllerAnimated:YES completion:^{
+        }];
+    });
+}
 
 /**
  *  Do nothing on long Press
@@ -741,15 +775,33 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 		
 		BOOL canEdit = [_pdfDocument allowsCommenting];
 		
-		
+//        if (!canEdit) {
+//
+//            NSString * language = [[NSLocale preferredLanguages] firstObject];
+//
+//            NSString *str = @"This document does not support annotations.";
+//            if ([language containsString:@"fr"]) {
+//
+//              str = @"Ce document n'accepte pas les annotations.";
+//            }
+//            else if ([language containsString:@"de"]) {
+//
+//              str = @"Dieses Dokument ist geschützt und akzeptiert keine Anmerkungen";
+//            }
+//
+//
+//
+//            [self ShowAlert:str];
+//        }
+//
 		CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxCropBox];
 		
 		
 		float x = (pdfPageRect.size.width - point.x) / pdfPageRect.size.width * 100;
 		float y = (pdfPageRect.size.height - point.y) / pdfPageRect.size.height * 100;
-		if (canEdit) {
-		_onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"longClick|%f|%f|%lu", x, y, page]]});
-		}
+		//if (canEdit) {
+            _onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"longClick|%f|%f|%lu|%d", x, y, page, canEdit ? 1 : 0]]});
+	//	}
 	}
 	[self didMove];
 }
