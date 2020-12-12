@@ -95,6 +95,8 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
     NSArray<NSString *> *_changedProps;
 	bool _initializing;
 	NSTimer *_timerPosition;
+    int _highlighter_page;
+    
 }
 
 - (instancetype)init
@@ -117,7 +119,8 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 		
 		_restoreViewState = @"";
 		_annotations = nil;
-		
+        _highlighter_page = 1;
+        
 		_timerPosition = nil;
 		
         // init and config PDFView
@@ -316,6 +319,8 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 					CGRect targetRect = { {[array[1] floatValue], [array[2] floatValue]}, {[array[3] floatValue], [array[4] floatValue]} };
 					
 					[_pdfView goToRect:targetRect onPage:pdfPage];
+                    
+                    _highlighter_page = [array[7] intValue];
 				}
 				else {
 					CGPoint pointLeftTop = CGPointMake(0,  pdfPageRect.size.height);
@@ -847,7 +852,7 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
     UILongPressGestureRecognizer *longPressRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self
                                                                                             action:@selector(handleLongPress:)];
     // Making sure the allowable movement isn not too narrow
-    longPressRecognizer.allowableMovement=100;
+    longPressRecognizer.allowableMovement=500;
     // Important: The duration must be long enough to allow taps but not longer than the period in which view opens the magnifying glass
     longPressRecognizer.minimumPressDuration=0.3;
     
@@ -880,6 +885,13 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 - (void)sendNewPosition
 {
 	
+    
+    PDFPage *pdfPage = [_pdfDocument pageAtIndex:_highlighter_page];
+    CGRect savedRect2 = [_pdfView convertRect:_pdfView.bounds toPage:pdfPage];
+    
+    NSLog(@"savedRect2 %f", savedRect2.origin.y);
+    
+    
 	PDFPage *page = [_pdfView pageForPoint:CGPointZero nearest:YES];
 	
 	if (!page)
@@ -891,7 +903,7 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 	
 	float zoom = _pdfView.scaleFactor/_fixScaleFactor;
 	//onPositionChanged={(currentPage, pageFocusX, pageFocusY, zoom, positionOffset)
-	_onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"iosPositionChanged|%lu|%f|%f|%f|%f|%f", (pageNb + 1), savedRect.origin.x,  savedRect.origin.y, savedRect.size.width, savedRect.size.height, zoom]]});
+	_onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"iosPositionChanged|%lu|%f|%f|%f|%f|%f|%f", (pageNb + 1), savedRect.origin.x,  savedRect.origin.y, savedRect.size.width, savedRect.size.height, zoom, savedRect2.origin.y]]});
 	
 	
 //	NSLog(@"sending new pos %f", savedRect.origin.y);

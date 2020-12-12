@@ -587,7 +587,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
             return;
         WritableMap event = Arguments.createMap();
 
-        event.putString("message", "positionChanged|"+this.savedViewState.currentPage+"|"+this.savedViewState.pageFocusX+"|"+this.savedViewState.pageFocusY+"|"+this.savedViewState.zoom + "|" + this.getPositionOffset());
+        event.putString("message", "positionChanged|"+this.savedViewState.currentPage+"|"+this.savedViewState.pageFocusX+"|"+this.savedViewState.pageFocusY+"|"+this.savedViewState.zoom + "|" + this.getPositionOffset() + "|" + lastPageWidth + "|" + lastPageHeight);
 
         ReactContext reactContext = (ReactContext)this.getContext();
         reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(
