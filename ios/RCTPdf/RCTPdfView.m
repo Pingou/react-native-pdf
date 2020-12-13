@@ -149,8 +149,12 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
         
         
 		
-		
-        [self bindTap];
+        double delayInSeconds = 0.5;
+        dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delayInSeconds * NSEC_PER_SEC));
+        dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
+          [self bindTap];
+        });
+        
     }
     
     return self;
@@ -813,7 +817,20 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 
 
 
-
+- (void)disableLongPressSubviews:(UIView *)view
+{
+    
+    for (UIView *subview in view.subviews)
+    {
+       for (UIGestureRecognizer * g in subview.gestureRecognizers) {
+           
+           if ([g isKindOfClass:[UILongPressGestureRecognizer class]]) {
+               g.enabled = NO;
+            }
+       }
+        [self disableLongPressSubviews:subview];
+    }
+}
 /**
  *  Bind tap
  *
@@ -849,12 +866,15 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 //    panRecognizer.delegate = self;
 //
     
+
+    [self disableLongPressSubviews:_pdfView];
+    
     UILongPressGestureRecognizer *longPressRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self
                                                                                             action:@selector(handleLongPress:)];
     // Making sure the allowable movement isn not too narrow
-    longPressRecognizer.allowableMovement=500;
+    longPressRecognizer.allowableMovement=100;
     // Important: The duration must be long enough to allow taps but not longer than the period in which view opens the magnifying glass
-    longPressRecognizer.minimumPressDuration=0.3;
+    longPressRecognizer.minimumPressDuration=0.6;
     
     [_pdfView addGestureRecognizer2:longPressRecognizer];
 	
@@ -885,7 +905,6 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 - (void)sendNewPosition
 {
 	
-    
     PDFPage *pdfPage = [_pdfDocument pageAtIndex:_highlighter_page];
     CGRect savedRect2 = [_pdfView convertRect:_pdfView.bounds toPage:pdfPage];
     
