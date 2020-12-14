@@ -872,9 +872,9 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
     UILongPressGestureRecognizer *longPressRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self
                                                                                             action:@selector(handleLongPress:)];
     // Making sure the allowable movement isn not too narrow
-    longPressRecognizer.allowableMovement=100;
+    longPressRecognizer.allowableMovement=300;
     // Important: The duration must be long enough to allow taps but not longer than the period in which view opens the magnifying glass
-    longPressRecognizer.minimumPressDuration=0.6;
+    longPressRecognizer.minimumPressDuration=1.0;
     
     [_pdfView addGestureRecognizer2:longPressRecognizer];
 	
