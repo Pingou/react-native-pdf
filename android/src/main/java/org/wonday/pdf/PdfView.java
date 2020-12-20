@@ -11,6 +11,7 @@ package org.wonday.pdf;
 import java.io.File;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -378,8 +379,10 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                     */
                     TextPaint textPaint = new TextPaint();
                     textPaint.setColor(Color.parseColor(pdfAnnotation.color));
-                    textPaint.setTextSize(25 * instance.getZoom());
-
+                    if(getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT)
+                        textPaint.setTextSize(25 * instance.getZoom());
+                    else
+                        textPaint.setTextSize(15 * instance.getZoom());
                    /* canvas.drawText(pdfAnnotation.text,
                             pageWidth * (pdfAnnotation.x / 100.0f) - (bitmap.getWidth() / 2) + paddingX,
                             pageHeight * (pdfAnnotation.y / 100.0f) - (bitmap.getHeight() / 2),
