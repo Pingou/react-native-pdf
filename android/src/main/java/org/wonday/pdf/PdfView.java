@@ -19,6 +19,7 @@ import android.graphics.Paint;
 import android.text.Layout;
 import android.text.StaticLayout;
 import android.text.TextPaint;
+
 import android.view.View;
 import android.view.ViewGroup;
 import android.util.Log;
@@ -63,10 +64,15 @@ import java.lang.ClassCastException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
+import com.github.barteksc.pdfviewer.util.Util;
 import com.shockwave.pdfium.PdfDocument;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.shockwave.pdfium.util.SizeF;
+
 
 public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompleteListener,OnErrorListener,OnTapListener,OnDrawListener,OnPageScrollListener,OnLongPressListener {
     private ThemedReactContext context;
@@ -90,13 +96,39 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
     private static PdfView instance = null;
 
-    private float lastPageWidth = 0;
-    private float lastPageHeight = 0;
+    private float [] pageWidths;
+    private float [] pageHeights;
+
+    private float maxWidth;
+    private float maxHeight;
 
    // private boolean loadComplete = false;
    // private long lastLoadingTime = 0;
    private String lastPath;
     private PdfViewState savedViewState = null;
+
+    static class MyTimerTask extends TimerTask {
+        WritableMap event;
+        ReactContext reactContext;
+        int tagId;
+
+        public void setData(WritableMap event, ReactContext reactContext, int tagId) {
+            this.event = event;
+            this.reactContext = reactContext;
+            this.tagId = tagId;
+        }
+
+
+        @Override
+        public void run() {
+            reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(
+                    tagId,
+                    "topChange",
+                    event
+            );
+            // You can do anything you want with param
+        }
+    }
 
     public static class PdfAnnotation {
         public int x;
@@ -130,15 +162,14 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
     private Bitmap annotationBitmapZoom1;
     private Bitmap annotationBitmapZoom2;
     private Bitmap annotationBitmapZoom3;
-
+    private MyTimerTask timerTask;
 
 
     public PdfView(ThemedReactContext context, AttributeSet set){
         super(context,set);
         this.context = context;
         this.instance = this;
-
-        loadAnnotationBitmap();
+        //loadAnnotationBitmap();
     }
 
     public PdfAnnotation createAnnotation(int x, int y, int pageNb) {
@@ -220,9 +251,22 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
     public void loadComplete(int numberOfPages) {
         float width = this.getWidth();
         float height = this.getHeight();
-        
+
+
+
+        for (int i = 0; i < numberOfPages; i++) {
+           SizeF val = this.getPageSize(i);
+
+           if (val.getHeight() > this.maxHeight)
+               this.maxHeight = val.getHeight();
+            if (val.getWidth() > this.maxWidth)
+                this.maxWidth = val.getWidth();
+        }
+        this.pageWidths = new float[numberOfPages];
+        this.pageHeights = new float[numberOfPages];
         this.zoomTo(this.scale);
         WritableMap event = Arguments.createMap();
+
 
        // this.lastLoadingTime = new Date().getTime();
         showLog("ploup load complete");
@@ -330,14 +374,14 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
     public void onLayerDrawn(Canvas canvas, float pageWidth, float pageHeight, int displayedPage){
 
 
-        if (lastPageWidth>0 && lastPageHeight>0 && (pageWidth!=lastPageWidth || pageHeight!=lastPageHeight)) {
+        if (this.pageWidths[displayedPage] >0 && this.pageHeights[displayedPage]>0 && (pageWidth!=this.pageWidths[displayedPage] || pageHeight!=this.pageHeights[displayedPage])) {
 
             // maybe change by other instance, restore zoom setting
             Constants.Pinch.MINIMUM_ZOOM = this.minScale;
             Constants.Pinch.MAXIMUM_ZOOM = this.maxScale;
 
             WritableMap event = Arguments.createMap();
-            event.putString("message", "scaleChanged|"+(pageWidth/lastPageWidth));
+            event.putString("message", "scaleChanged|"+(pageWidth/this.pageWidths[displayedPage]));
 
             ReactContext reactContext = (ReactContext)this.getContext();
             reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(
@@ -349,26 +393,31 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
             sendCurrentViewState();
         }
 
-        lastPageWidth = pageWidth;
-        lastPageHeight = pageHeight;
+        this.pageWidths[displayedPage] = pageWidth;
+        this.pageHeights[displayedPage] = pageHeight;
 
         if (instance != null && pdfAnnotations != null) {
             for (PdfAnnotation pdfAnnotation : pdfAnnotations) {
 
-                if (pdfAnnotation.pageNb == displayedPage) {
+                if (pdfAnnotation.pageNb == displayedPage || pdfAnnotation.pageNb == displayedPage - 1 || pdfAnnotation.pageNb == displayedPage + 1) {
 
-                    Log.d("plop drawing at", " " + pageWidth * pdfAnnotation.x / 100);
+                    //Log.d("plop drawing at", " " + pageWidth * pdfAnnotation.x / 100);
                     Paint paint = new Paint();
                     paint.setColor(Color.RED);
 
                     float paddingX = 0.0f;
-                    
-                    if (instance.isSwipeVertical()) {
-                        paddingX = instance.getSecondaryPageOffset(pdfAnnotation.pageNb, this.getZoom());
+
+                    try {
+                        if (instance.isSwipeVertical()) {
+                            paddingX = instance.getSecondaryPageOffset(pdfAnnotation.pageNb, this.getZoom());
+                        } else {
+                            paddingX = instance.getPageOffset(pdfAnnotation.pageNb, this.getZoom());
+                        }
                     }
-                    else {
-                        paddingX = instance.getPageOffset(pdfAnnotation.pageNb, this.getZoom());
+                    catch (Exception e) {
+                        continue;
                     }
+
 
                     /*
                     Bitmap bitmap = getAnnotationBitmap((int) instance.getZoom());
@@ -391,7 +440,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
                     int textWidth = (int)((canvas.getWidth() - (int) (canvas.getWidth() * (pdfAnnotation.x / 100.0f))) * instance.getZoom());
 
-                    Log.d("PdfView canvaswidth=", canvas.getWidth() + ": pageWidth=" + pageWidth + " x=" + pdfAnnotation.x + " textwidth:" + textWidth );
+                    //Log.d("PdfView canvaswidth=", canvas.getWidth() + ": pageWidth=" + pageWidth + " x=" + pdfAnnotation.x + " textwidth:" + textWidth );
                     if (textWidth < 40)
                         textWidth = 40;
                     // init StaticLayout for text
@@ -405,6 +454,11 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                     // get position of text's top left corner
                     float x = pageWidth * (pdfAnnotation.x / 100.0f) + paddingX;
                     float y = pageHeight * (pdfAnnotation.y / 100.0f);
+
+                    if (pdfAnnotation.pageNb == displayedPage + 1)
+                        y += pageHeight + Util.getDP(getContext(), this.spacing);
+                    else if (pdfAnnotation.pageNb == displayedPage - 1)
+                        y -= pageHeight + Util.getDP(getContext(), this.spacing);
 
                     // draw text to the Canvas center
                     canvas.save();
@@ -480,7 +534,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
             // set scale
             this.setMinZoom(this.minScale);
             this.setMaxZoom(this.maxScale);
-            this.setMidZoom((this.maxScale+this.minScale)/2);
+            this.setMidZoom((this.maxScale)/3);
             Constants.Pinch.MINIMUM_ZOOM = this.minScale;
             Constants.Pinch.MAXIMUM_ZOOM = this.maxScale;
 
@@ -590,9 +644,31 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
             return;
         WritableMap event = Arguments.createMap();
 
-        event.putString("message", "positionChanged|"+this.savedViewState.currentPage+"|"+this.savedViewState.pageFocusX+"|"+this.savedViewState.pageFocusY+"|"+this.savedViewState.zoom + "|" + this.getPositionOffset() + "|" + lastPageWidth + "|" + lastPageHeight);
+        event.putString("message", "positionChanged|"+this.savedViewState.currentPage+"|"+this.savedViewState.pageFocusX+"|"+this.savedViewState.pageFocusY+"|"+this.savedViewState.zoom + "|" + this.getPositionOffset()
+                + "|" + this.pageWidths[this.savedViewState.currentPage] + "|" + this.pageHeights[this.savedViewState.currentPage] + "|" + this.maxWidth + "|" + this.maxHeight);
 
         ReactContext reactContext = (ReactContext)this.getContext();
+/*
+        if (this.timerTask != null)
+            this.timerTask.cancel();
+
+        this.timerTask = new MyTimerTask() {
+            @Override
+            public void run()
+            {
+                //do something
+                this.reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(
+                        tagId,
+                        "topChange",
+                        event
+                );
+            }
+        };
+
+        this.timerTask.setData(event, reactContext, getId());
+        Timer timer = new Timer("Timer");
+
+        timer.schedule(this.timerTask, 500);*/
         reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(
                 this.getId(),
                 "topChange",

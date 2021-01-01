@@ -368,22 +368,45 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 						
 						long pageNb = [[object objectForKey:@"pageNb"] integerValue];
 						
-                        NSString *title = [[object objectForKey:@"title"] stringValue];
-						NSString *color = [[object objectForKey:@"color"] stringValue];
-                        NSString *icon = [[object objectForKey:@"icon"] stringValue];
                         
+                        NSString *title = (NSString *)[object objectForKey:@"title"];
+                        
+						NSString *color = (NSString *)[object objectForKey:@"color"];
+                        NSString *icon = (NSString *)[object objectForKey:@"icon"];
+                        
+                        pdfPage = [_pdfDocument pageAtIndex:pageNb];
 						CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxCropBox];
 						
-						float x = pdfPageRect.size.width - (pdfPageRect.size.width * xPerc / 100);
-						float y = pdfPageRect.size.height - (pdfPageRect.size.height * yPerc / 100);
+                        
+                        float x = 0;
+                        float y = 0;
+                        if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
+                           x = (pdfPageRect.size.width * (100 - yPerc) / 100) - (pdfPageRect.size.height - pdfPageRect.size.width);
+                           y = (pdfPageRect.size.height * xPerc / 100);
+                        }
+                        else {
+                            x = pdfPageRect.size.width - (pdfPageRect.size.width * xPerc / 100);
+                            y = pdfPageRect.size.height - (pdfPageRect.size.height * yPerc / 100);
+                        }
+                       // x = pdfPageRect.size.width - (pdfPageRect.size.width * xPerc / 100);
+                       // y = pdfPageRect.size.height - (pdfPageRect.size.height * yPerc / 100);
+                        
+						//float x = pdfPageRect.size.width - (pdfPageRect.size.width * xPerc / 100);
+						//float y = pdfPageRect.size.height - (pdfPageRect.size.height * yPerc / 100);
 						
                         float width = pdfPageRect.size.width - x + 10;
                         if (width > 200) {
                            width = 200;
                         }
                         float height = 200;
-                        CGRect targetRect = { x - 5, y - (height - 10), {width, height} };
-						
+                        
+                        CGRect targetRect;
+                      /*  if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
+                            targetRect = CGRectMake(y - (height - 10), x - 5, width, height);
+                        }
+                        else {*/
+                            targetRect = CGRectMake( x - 5, y - (height - 10), width, height);
+                       // }
 						
 						PDFPage *annotationPage = [_pdfDocument pageAtIndex:pageNb];
 						PDFAnnotation* annotation = [[PDFAnnotation alloc] initWithBounds:targetRect forType:PDFAnnotationSubtypeFreeText withProperties:nil];
@@ -806,8 +829,21 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 		CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxCropBox];
 		
 		
-		float x = (pdfPageRect.size.width - point.x) / pdfPageRect.size.width * 100;
-		float y = (pdfPageRect.size.height - point.y) / pdfPageRect.size.height * 100;
+		float x;
+		float y;
+        
+        x = (pdfPageRect.size.width - point.x) / pdfPageRect.size.width * 100;
+                   y = (pdfPageRect.size.height - point.y) / pdfPageRect.size.height * 100;
+        if (pdfPage.rotation == 90 || pdfPage.rotation == 270)
+        {
+            float tmp = x;
+            x = 100 - y;
+            y = tmp;
+           // x = 100 - ((pdfPageRect.size.height - point.y) / pdfPageRect.size.height * 100);
+           // y = 100 - ((pdfPageRect.size.width - point.x) / pdfPageRect.size.width * 100);
+            
+        }
+        
 		//if (canEdit) {
             _onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"longClick|%f|%f|%lu|%d", x, y, page, canEdit ? 1 : 0]]});
 	//	}
