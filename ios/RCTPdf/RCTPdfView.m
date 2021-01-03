@@ -96,7 +96,7 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 	bool _initializing;
 	NSTimer *_timerPosition;
     int _highlighter_page;
-    
+    int _isLandscape;
 }
 
 - (instancetype)init
@@ -134,7 +134,8 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
         _initialed = NO;
         _changedProps = NULL;
 		_initializing = NO;
-		
+        _isLandscape = 0;
+        
         [self addSubview:_pdfView];
         
         
@@ -314,6 +315,7 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
                 // some pdf with rotation, then adjust it
                 if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
                     pdfPageRect = CGRectMake(0, 0, pdfPageRect.size.height, pdfPageRect.size.width);
+                    _isLandscape = 1;
                 }
 				 
 				
@@ -944,7 +946,7 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
     PDFPage *pdfPage = [_pdfDocument pageAtIndex:_highlighter_page];
     CGRect savedRect2 = [_pdfView convertRect:_pdfView.bounds toPage:pdfPage];
     
-    NSLog(@"savedRect2 %f", savedRect2.origin.y);
+    //NSLog(@"savedRect2 %f", savedRect2.origin.y);
     
     
 	PDFPage *page = [_pdfView pageForPoint:CGPointZero nearest:YES];
@@ -956,9 +958,16 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 	
 	unsigned long pageNb = [_pdfDocument indexForPage:page];
 	
+    float posYFromSelectedPage;
+    if (_isLandscape == 1) {
+        posYFromSelectedPage = savedRect2.origin.x;
+    }
+    else {
+        posYFromSelectedPage = savedRect2.origin.y;
+    }
 	float zoom = _pdfView.scaleFactor/_fixScaleFactor;
 	//onPositionChanged={(currentPage, pageFocusX, pageFocusY, zoom, positionOffset)
-	_onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"iosPositionChanged|%lu|%f|%f|%f|%f|%f|%f", (pageNb + 1), savedRect.origin.x,  savedRect.origin.y, savedRect.size.width, savedRect.size.height, zoom, savedRect2.origin.y]]});
+	_onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"iosPositionChanged|%lu|%f|%f|%f|%f|%f|%f|%d", (pageNb + 1), savedRect.origin.x,  savedRect.origin.y, savedRect.size.width, savedRect.size.height, zoom, posYFromSelectedPage, _isLandscape]]});
 	
 	
 //	NSLog(@"sending new pos %f", savedRect.origin.y);

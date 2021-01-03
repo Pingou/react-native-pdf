@@ -377,7 +377,7 @@ export default class Pdf extends Component {
             }
             else if (message[0] === 'iosPositionChanged') {
                     console.log('iosPositionChanged', message)
-                    this.props.onIosPositionChanged && this.props.onIosPositionChanged(Number(message[1]), Number(message[2]), Number(message[3]), Number(message[4]), Number(message[5]), Number(message[6]), Number(message[7]) );
+                    this.props.onIosPositionChanged && this.props.onIosPositionChanged(Number(message[1]), Number(message[2]), Number(message[3]), Number(message[4]), Number(message[5]), Number(message[6]), Number(message[7]), Number(message[8]) );
                 }
             else {
                 if (message.length > 5) {
