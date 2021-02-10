@@ -89,6 +89,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
     private boolean enableAnnotationRendering = true;
 
     private boolean enablePaging = false;
+    private boolean enableDarkMode = false;
     private boolean autoSpacing = false;
     private boolean pageFling = false;
     private boolean pageSnap = false;
@@ -556,6 +557,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                 .autoSpacing(this.autoSpacing)
                 .pageFling(this.pageFling)
                 .enableAnnotationRendering(this.enableAnnotationRendering)
+                .nightMode(this.enableDarkMode)
                 .load();
 
         }
@@ -613,6 +615,10 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
             this.pageFling = false;
             this.pageSnap = false;
         }
+    }
+
+    public void setEnableDarkMode(boolean enableDarkMode) {
+        this.enableDarkMode = enableDarkMode;
     }
 
     public void setFitPolicy(int fitPolicy) {

@@ -120,6 +120,11 @@ public class RCTPdfManager extends SimpleViewManager<PdfView> {
         pdfView.setEnablePaging(enablePaging);
     }
 
+    @ReactProp(name = "enableDarkMode")
+    public void setEnableDarkMode(PdfView pdfView, boolean enableDarkMode) {
+        pdfView.setEnableDarkMode(enableDarkMode);
+    }
+
     @ReactProp(name = "fitPolicy")
     public void setFitPolycy(PdfView pdfView, int fitPolicy) {
         pdfView.setFitPolicy(fitPolicy);

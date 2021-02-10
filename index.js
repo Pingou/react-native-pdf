@@ -74,7 +74,8 @@ export default class Pdf extends Component {
         onLayout: PropTypes.bool,
         accessibilityLiveRegion: PropTypes.string,
         accessibilityComponentType: PropTypes.string,
-        annotations: PropTypes.array
+        annotations: PropTypes.array,
+        enableDarkMode: PropTypes.bool
     };
 
     static defaultProps = {
@@ -89,6 +90,7 @@ export default class Pdf extends Component {
         enableAntialiasing: true,
         enableAnnotationRendering: true,
         enablePaging: false,
+        enableDarkMode: false,
         enableRTL: false,
         activityIndicatorProps: {color: '#009900', progressTintColor: '#009900'},
         restoreViewState: "",
