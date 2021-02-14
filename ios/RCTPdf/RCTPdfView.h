@@ -36,7 +36,7 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface RCTPdfView : UIView <UIGestureRecognizer
 @property(nonatomic, strong) NSString *password;
 @property(nonatomic) NSString *restoreViewState;
 @property(nonatomic) NSArray *annotations;
-
+@property(nonatomic) BOOL enableDarkMode;
 @property(nonatomic, copy) RCTBubblingEventBlock onChange;
 
 

@@ -113,6 +113,7 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
         _horizontal = NO;
         _enablePaging = NO;
         _enableRTL = NO;
+        _enableDarkMode = NO;
         _enableAnnotationRendering = YES;
         _fitPolicy = 2;
         _spacing = 10;
@@ -433,6 +434,10 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 				
             }
         }
+        if (_enableDarkMode)
+            _pdfView.backgroundColor = [UIColor blackColor];
+        else
+            _pdfView.backgroundColor = [UIColor whiteColor];
 		/*if (@available(iOS 12, *)) {
 			[_pdfView enablePageShadows:NO];
 		}
