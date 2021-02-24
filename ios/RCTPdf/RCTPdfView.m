@@ -120,7 +120,8 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 		
 		_restoreViewState = @"";
 		_annotations = nil;
-        _highlighter_page = 1;
+        _highlightLines = nil;
+        _highlighter_page = 0;
         
 		_timerPosition = nil;
 		
@@ -241,6 +242,7 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 			if ([_restoreViewState length] != 0) {
 				NSArray *array = [_restoreViewState componentsSeparatedByString:@"/"];
 				
+                _page = [array[0] intValue];
 				_scale = [array[5] floatValue];
                 _fixScaleFactor = -1.0f;
                 _minScale = MIN_SCALE;
@@ -299,7 +301,7 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
             }
         }
        
-        if (_pdfDocument && ([changedProps containsObject:@"path"] || [changedProps containsObject:@"enablePaging"] || [changedProps containsObject:@"horizontal"] || [changedProps containsObject:@"page"] || [changedProps containsObject:@"restoreViewState"]|| [changedProps containsObject:@"annotations"])) {
+        if (_pdfDocument && ([changedProps containsObject:@"path"] || [changedProps containsObject:@"enablePaging"] || [changedProps containsObject:@"horizontal"] || [changedProps containsObject:@"page"] || [changedProps containsObject:@"restoreViewState"] || [changedProps containsObject:@"annotations"] || [changedProps containsObject:@"highlightLines"])) {
 			
             
             PDFPage *pdfPage = nil;
@@ -370,7 +372,6 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 						float yPerc = [[object objectForKey:@"y"] floatValue];
 						
 						long pageNb = [[object objectForKey:@"pageNb"] integerValue];
-						
                         
                         NSString *title = (NSString *)[object objectForKey:@"title"];
                         
@@ -422,6 +423,12 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
                         [annotationPage addAnnotation:annotation];
 						
 						
+                        /*
+                        PDFAnnotation* annotation = [[PDFAnnotation alloc] initWithBounds:CGRectMake(206, 600, 60, 59) forType:PDFAnnotationSubtypeHighlight withProperties:nil];
+                        annotation.color = UIColor.blueColor;
+                        [annotationPage addAnnotation:annotation];
+                        */
+                        
 						
 						/*if (@available(iOS 13, *)) {
 							[annotation setAccessibilityRespondsToUserInteraction:NO];
@@ -431,6 +438,68 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 					}
 				}
                 
+                
+                if (_highlightLines != nil && [_highlightLines count] > 0) {
+                    for (id object in _highlightLines) {
+                        // do something with object
+                        
+                        
+                        float startXPerc = [[object objectForKey:@"startX"] floatValue];
+                        float startYPerc = [[object objectForKey:@"startY"] floatValue];
+                        
+                        long pageNb = [[object objectForKey:@"pageNb"] integerValue];
+                        long size = [[object objectForKey:@"size"] integerValue];
+                        long isVertical = [[object objectForKey:@"isVertical"] integerValue];
+                        NSString *color = (NSString *)[object objectForKey:@"color"];
+                    
+                        pdfPage = [_pdfDocument pageAtIndex:pageNb];
+                        CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxCropBox];
+                        
+                        
+                        float startX = 0;
+                        float startY = 0;
+                        if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
+                            startX = (pdfPageRect.size.width * (100 - startYPerc) / 100) - (pdfPageRect.size.height - pdfPageRect.size.width);
+                            startY = (pdfPageRect.size.height * startXPerc / 100);
+                        }
+                        else {
+                            startX = pdfPageRect.size.width - (pdfPageRect.size.width * startXPerc / 100);
+                            startY = pdfPageRect.size.height - (pdfPageRect.size.height * startYPerc / 100);
+                        }
+                        
+                        
+                       // startY = startY - (size / 2);
+                        float endXPerc = [[object objectForKey:@"endX"] floatValue];
+                        float endYPerc = [[object objectForKey:@"endY"] floatValue];
+                        
+                        
+                        float endX = 0;
+                        float endY = 0;
+                        if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
+                            endX = (pdfPageRect.size.width * (100 - endYPerc) / 100) - (pdfPageRect.size.height - pdfPageRect.size.width);
+                            endY = (pdfPageRect.size.height * endXPerc / 100);
+                        }
+                        else {
+                            endX = pdfPageRect.size.width - (pdfPageRect.size.width * endXPerc / 100);
+                            endY = pdfPageRect.size.height - (pdfPageRect.size.height * endYPerc / 100);
+                        }
+                        
+                        
+                        PDFPage *annotationPage = [_pdfDocument pageAtIndex:pageNb];
+                        
+                        float width = endX - startX;
+                        float height = size;
+                        if (isVertical == 1) {
+                            width = size;
+                            height = endY - startY;
+                        }
+                        PDFAnnotation* annotation = [[PDFAnnotation alloc] initWithBounds:CGRectMake(startX, startY, width, height) forType:PDFAnnotationSubtypeHighlight withProperties:nil];
+                        annotation.color = [self getUIColorObjectFromHexString:color alpha:0.5];
+                        [annotationPage addAnnotation:annotation];
+                        
+                   
+                    }
+                }
 				
             }
         }
@@ -948,7 +1017,7 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 - (void)sendNewPosition
 {
 	
-    PDFPage *pdfPage = [_pdfDocument pageAtIndex:_highlighter_page];
+    PDFPage *pdfPage = [_pdfDocument pageAtIndex:0];
     CGRect savedRect2 = [_pdfView convertRect:_pdfView.bounds toPage:pdfPage];
     
     //NSLog(@"savedRect2 %f", savedRect2.origin.y);

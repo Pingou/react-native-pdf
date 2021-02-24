@@ -161,6 +161,26 @@ public class RCTPdfManager extends SimpleViewManager<PdfView> {
 
     }
 
+    @ReactProp(name = "highlightLines")
+    public void setHighlightLines(PdfView pdfView, ReadableArray highlightLines) {
+
+        List<PdfView.PdfHighlightLine> newList = new ArrayList<>();
+        if (highlightLines != null) {
+
+
+
+            for (int i = 0; i < highlightLines.size(); i++) {
+                ReadableMap obj = highlightLines.getMap(i);
+
+                PdfView.PdfHighlightLine newHighlightLine = new PdfView.PdfHighlightLine(obj.getDouble("startX"), obj.getDouble("startY"), obj.getDouble("endX"), obj.getDouble("endY"),
+                         obj.getInt("pageNb"), obj.getInt("size"), obj.getInt("isVertical"), obj.getString("color"));
+                newList.add(newHighlightLine);
+            }
+        }
+        pdfView.setHighlightLines(newList);
+
+    }
+
     @Override
     public void onAfterUpdateTransaction(PdfView pdfView) {
         super.onAfterUpdateTransaction(pdfView);

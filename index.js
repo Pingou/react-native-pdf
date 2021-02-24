@@ -75,6 +75,7 @@ export default class Pdf extends Component {
         accessibilityLiveRegion: PropTypes.string,
         accessibilityComponentType: PropTypes.string,
         annotations: PropTypes.array,
+        highlightLines: PropTypes.array,
         enableDarkMode: PropTypes.bool
     };
 
@@ -95,6 +96,7 @@ export default class Pdf extends Component {
         activityIndicatorProps: {color: '#009900', progressTintColor: '#009900'},
         restoreViewState: "",
         annotations: [],
+        highlightLines: [],
         onLoadProgress: (percent) => {
         },
         onLoadComplete: (numberOfPages, path) => {
