@@ -455,6 +455,8 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
                         pdfPage = [_pdfDocument pageAtIndex:pageNb];
                         CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxCropBox];
                         
+                        //sur android c'est plus petit que sur ios, on ajuste
+                        //size = size * 0.8;
                         
                         float startX = 0;
                         float startY = 0;
@@ -490,9 +492,12 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
                         float width = endX - startX;
                         float height = size;
                         if (isVertical == 1) {
+                            startX = startX - (size / 2);
                             width = size;
                             height = endY - startY;
                         }
+                        else
+                            startY = startY - (size / 2);
                         PDFAnnotation* annotation = [[PDFAnnotation alloc] initWithBounds:CGRectMake(startX, startY, width, height) forType:PDFAnnotationSubtypeHighlight withProperties:nil];
                         annotation.color = [self getUIColorObjectFromHexString:color alpha:0.5];
                         [annotationPage addAnnotation:annotation];
@@ -559,7 +564,11 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
         CGSize pageSize = [_pdfView rowSizeForPage:page];
         NSString *jsonString = [self getTableContents];
         
-        _onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"loadComplete|%lu|%f|%f|%@", numberOfPages, pageSize.width, pageSize.height,jsonString]]});
+        int disableAnnotations = 0;
+        if (![_pdfDocument allowsCommenting])
+            disableAnnotations = 1;
+
+        _onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"loadComplete|%lu|%f|%f|%lu|%@", numberOfPages, pageSize.width, pageSize.height,disableAnnotations,jsonString]]});
     }
     
 }

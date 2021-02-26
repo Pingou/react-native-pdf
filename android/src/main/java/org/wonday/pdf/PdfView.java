@@ -134,8 +134,8 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
     }
 
     public static class PdfAnnotation {
-        public int x;
-        public int y;
+        public double x;
+        public double y;
         public int pageNb;
         public String title;
         public String color;
@@ -144,12 +144,12 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
         public PdfAnnotation() {
 
         }
-        public PdfAnnotation(int x, int y, int pageNb) {
+        public PdfAnnotation(double x, double y, int pageNb) {
             this.x = x;
             this.y = y;
             this.pageNb = pageNb;
         }
-        public PdfAnnotation(int x, int y, int pageNb, String title, String color, String icon) {
+        public PdfAnnotation(double x, double y, int pageNb, String title, String color, String icon) {
             this.x = x;
             this.y = y;
             this.pageNb = pageNb;
@@ -210,10 +210,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
     private void createPaints() {
         textPaint = new TextPaint();
 
-        if(getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT)
-            textPaint.setTextSize(25 * instance.getZoom());
-        else
-            textPaint.setTextSize(15 * instance.getZoom());
+
 
         paint = new Paint();
         paint.setStyle(Paint.Style.FILL);
@@ -369,7 +366,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
     public void onLongPress(MotionEvent e) {
 
         if (instance != null) {
-            PdfAnnotation annotation = getAnnotationAtPos(Math.round(e.getX()), Math.round(e.getY()));
+            PdfAnnotation annotation = getAnnotationAtPos(e.getX(), e.getY());
 
 
             Log.d("plop onLongPress", " " + annotation.x + " " + annotation.y);
@@ -399,7 +396,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
         //Constants.Pinch.MAXIMUM_ZOOM = this.maxScale;
 
         if (instance != null) {
-            PdfAnnotation annotation = getAnnotationAtPos(Math.round(e.getX()), Math.round(e.getY()));
+            PdfAnnotation annotation = getAnnotationAtPos(e.getX(), e.getY());
 
 
             Log.d("plop onLongPress", " " + annotation.x + " " + annotation.y);
@@ -455,7 +452,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
                     //Log.d("plop drawing at", " " + pageWidth * pdfAnnotation.x / 100);
 
-                    paint.setColor(Color.parseColor("#cc" + highlightLine.color.replace("#", "")));
+                    paint.setColor(Color.parseColor((this.enableDarkMode ? "#88" : "#55") + highlightLine.color.replace("#", "")));
 
 
                     float paddingX = 0.0f;
@@ -487,33 +484,36 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                         endY -= pageHeight + Util.getDP(getContext(), this.spacing);
                     }
 
+                    float size = (float)Util.getDP(getContext(), highlightLine.size) * this.getZoom();
 
+
+                    size = size / 2;
                     if (highlightLine.isVertical == 1) {
-                        startX = startX - (Util.getDP(getContext(), highlightLine.size) / 2);
-                        endX = endX + Util.getDP(getContext(), highlightLine.size);
+                        startX = startX - (size / 2);
+                        endX = startX + (size / 2);
 
                     }
                     else {
-                        startY = startY - (Util.getDP(getContext(), highlightLine.size) / 2);
-                        endY = startY + Util.getDP(getContext(), highlightLine.size);
+                        startY = startY - (size / 2);
+                        endY = startY + size;
                     }
 
 
                     // draw text to the Canvas center
-                    canvas.save();
+                    //canvas.save();
                     // canvas.translate(x, y);
 
                     canvas.drawRect((float)startX, (float)startY, (float)endX, (float)endY,
                             paint);
 
                     // textLayout.draw(canvas);
-                    canvas.restore();
+                    //canvas.restore();
 
 
                 }
             }
         }
-        
+
         if (instance != null && pdfAnnotations != null) {
             for (PdfAnnotation pdfAnnotation : pdfAnnotations) {
 
@@ -543,7 +543,10 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                             , null);
                     */
                     textPaint.setColor(Color.parseColor(pdfAnnotation.color));
-
+                    if(getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT)
+                        textPaint.setTextSize(25 * instance.getZoom());
+                    else
+                        textPaint.setTextSize(15 * instance.getZoom());
 
                     int textWidth = (int)((canvas.getWidth() - (int) (canvas.getWidth() * (pdfAnnotation.x / 100.0f))) * instance.getZoom());
 
@@ -559,8 +562,8 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
 
                     // get position of text's top left corner
-                    float x = pageWidth * (pdfAnnotation.x / 100.0f) + paddingX;
-                    float y = pageHeight * (pdfAnnotation.y / 100.0f);
+                    double x = pageWidth * (pdfAnnotation.x / 100.0f) + paddingX;
+                    double y = pageHeight * (pdfAnnotation.y / 100.0f);
 
                     if (pdfAnnotation.pageNb == displayedPage + 1)
                         y += pageHeight + Util.getDP(getContext(), this.spacing);
@@ -569,7 +572,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
                     // draw text to the Canvas center
                     canvas.save();
-                    canvas.translate(x, y);
+                    canvas.translate((float)x, (float)y);
                     textLayout.draw(canvas);
                     canvas.restore();
 
@@ -588,7 +591,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
             this.drawPdf();
     }
 
-    private PdfAnnotation getAnnotationAtPos(int x, int y) {
+    private PdfAnnotation getAnnotationAtPos(float x, float y) {
         int pageNb = instance.getCurrentPage();
         PdfAnnotation results = getPercentPosForPage(x, y, pageNb);
 
@@ -604,7 +607,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
         return results;
     }
 
-    private PdfAnnotation getPercentPosForPage(int x, int y, int page) {
+    private PdfAnnotation getPercentPosForPage(float x, float y, int page) {
         float xPer = 0;
         float yPer = 0;
         try {
@@ -625,7 +628,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
         catch (Exception e) {
 
         }
-        return new PdfAnnotation(Math.round(xPer), Math.round(yPer), page);
+        return new PdfAnnotation(xPer, yPer, page);
     }
 
     public void drawPdf() {

@@ -42,7 +42,7 @@ export type Props = {
   maxScale?: number,
   minScale?: number,
   onError?: (error: Error) => void,
-  onLoadComplete?: (numberOfPages: number, path: string, size: { height: number, width: number }, tableContents: ?TableContent[]) => void,
+  onLoadComplete?: (numberOfPages: number, path: string, size: { height: number, width: number }, annotationsDisabled: number, tableContents: ?TableContent[]) => void,
   onLoadProgress?: (percent: number) => void,
   onPageChanged?: (page: number, numberOfPages: number) => void,
   onPageSingleTap?: (page: number) => void,

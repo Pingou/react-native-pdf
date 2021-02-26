@@ -99,7 +99,7 @@ export default class Pdf extends Component {
         highlightLines: [],
         onLoadProgress: (percent) => {
         },
-        onLoadComplete: (numberOfPages, path) => {
+        onLoadComplete: (numberOfPages, path, dims, annotationsDisabled) => {
         },
         onPageChanged: (page, numberOfPages) => {
         },
@@ -384,15 +384,17 @@ export default class Pdf extends Component {
                     this.props.onIosPositionChanged && this.props.onIosPositionChanged(Number(message[1]), Number(message[2]), Number(message[3]), Number(message[4]), Number(message[5]), Number(message[6]), Number(message[7]), Number(message[8]) );
                 }
             else {
-                if (message.length > 5) {
+                if (message.length > 5 && message[0] !== 'loadComplete') {
                     message[4] = message.splice(4).join('|');
                 }
+
                 if (message[0] === 'loadComplete') {
                     this.props.onLoadComplete && this.props.onLoadComplete(Number(message[1]), this.state.path, {
                         width: Number(message[2]),
                         height: Number(message[3]),
                     },
-                    message[4]&&JSON.parse(message[4]));
+                    message[4]&&Number(message[4]),
+                    message[5]&&JSON.parse(message[5]));
                 } else if (message[0] === 'pageChanged') {
                     this.props.onPageChanged && this.props.onPageChanged(Number(message[1]), Number(message[2]));
                 } else if (message[0] === 'error') {

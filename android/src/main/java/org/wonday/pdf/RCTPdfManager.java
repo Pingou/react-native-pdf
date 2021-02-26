@@ -152,7 +152,7 @@ public class RCTPdfManager extends SimpleViewManager<PdfView> {
             for (int i = 0; i < annotations.size(); i++) {
                 ReadableMap obj = annotations.getMap(i);
 
-                PdfView.PdfAnnotation newAnnotation = new PdfView.PdfAnnotation(obj.getInt("x"), obj.getInt("y"), obj.getInt("pageNb"),
+                PdfView.PdfAnnotation newAnnotation = new PdfView.PdfAnnotation(obj.getDouble("x"), obj.getDouble("y"), obj.getInt("pageNb"),
                         obj.getString("title"), obj.getString("color"), obj.getString("icon"));
                 newList.add(newAnnotation);
             }
