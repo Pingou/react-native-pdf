@@ -22,6 +22,7 @@
 #import "RCTEventDispatcher.h"
 #import "UIView+React.h"
 #import "RCTLog.h"
+#import <math.h>
 #endif
 
 #ifndef __OPTIMIZE__
@@ -412,10 +413,17 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
                             targetRect = CGRectMake( x - 5, y - (height - 10), width, height);
                        // }
 						
+                        float baseWidth = 1000;
+                        float currentWidth = fmin(pdfPageRect.size.width,pdfPageRect.size.height);
+                        float fontSize = 13.0;
+                        if (currentWidth > baseWidth) {
+                            fontSize = fontSize * ((currentWidth / baseWidth));
+                        }
+                        
 						PDFPage *annotationPage = [_pdfDocument pageAtIndex:pageNb];
 						PDFAnnotation* annotation = [[PDFAnnotation alloc] initWithBounds:targetRect forType:PDFAnnotationSubtypeFreeText withProperties:nil];
 						 annotation.color = [UIColor colorWithRed:213.0/255.0 green:41.0/255.0 blue:65.0/255.0 alpha:0];
-                        annotation.font = [UIFont fontWithName:@"ArialMT" size:13.0];
+                        annotation.font = [UIFont fontWithName:@"ArialMT" size:fontSize];
                         annotation.multiline = true;
                         annotation.fontColor = [self getUIColorObjectFromHexString:color alpha:1];
                         annotation.contents = [NSString stringWithFormat:@"%@%@", icon, title];
