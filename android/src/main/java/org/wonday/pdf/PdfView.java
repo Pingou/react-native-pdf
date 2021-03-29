@@ -140,6 +140,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
         public String title;
         public String color;
         public String icon;
+        public int size;
 
         public PdfAnnotation() {
 
@@ -149,7 +150,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
             this.y = y;
             this.pageNb = pageNb;
         }
-        public PdfAnnotation(double x, double y, int pageNb, String title, String color, String icon) {
+        public PdfAnnotation(double x, double y, int pageNb, String title, String color, String icon, int size) {
             this.x = x;
             this.y = y;
             this.pageNb = pageNb;
@@ -157,6 +158,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
             this.title = title;
             this.color = color;
             this.icon = icon;
+            this.size = size;
         }
     }
 
@@ -543,10 +545,16 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                             , null);
                     */
                     textPaint.setColor(Color.parseColor(pdfAnnotation.color));
+
+                    float multiple = 1.0f;
+                    if (pdfAnnotation.size <= 10)
+                        multiple = 0.7f;
+                    else if (pdfAnnotation.size > 16)
+                        multiple = 1.4f;
                     if(getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT)
-                        textPaint.setTextSize(25 * instance.getZoom());
+                        textPaint.setTextSize(25 * instance.getZoom() * multiple);
                     else
-                        textPaint.setTextSize(15 * instance.getZoom());
+                        textPaint.setTextSize(15 * instance.getZoom() * multiple);
 
                     int textWidth = (int)((canvas.getWidth() - (int) (canvas.getWidth() * (pdfAnnotation.x / 100.0f))) * instance.getZoom());
 

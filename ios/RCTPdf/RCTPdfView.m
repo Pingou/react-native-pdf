@@ -379,6 +379,8 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 						NSString *color = (NSString *)[object objectForKey:@"color"];
                         NSString *icon = (NSString *)[object objectForKey:@"icon"];
                         
+                        long fontSize = [[object objectForKey:@"size"] integerValue];
+                        
                         pdfPage = [_pdfDocument pageAtIndex:pageNb];
 						CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxCropBox];
 						
@@ -415,7 +417,6 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 						
                         float baseWidth = 1000;
                         float currentWidth = fmin(pdfPageRect.size.width,pdfPageRect.size.height);
-                        float fontSize = 13.0;
                         if (currentWidth > baseWidth) {
                             fontSize = fontSize * ((currentWidth / baseWidth));
                         }
