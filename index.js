@@ -389,12 +389,23 @@ export default class Pdf extends Component {
                 }
 
                 if (message[0] === 'loadComplete') {
+
+                    var title = {}
+                    if (message[5]) {
+                        try {
+                            title = JSON.parse(message[5])
+                        }
+                        catch {
+                  
+                        }
+                    }
+                   
                     this.props.onLoadComplete && this.props.onLoadComplete(Number(message[1]), this.state.path, {
                         width: Number(message[2]),
                         height: Number(message[3]),
                     },
                     message[4]&&Number(message[4]),
-                    message[5]&&JSON.parse(message[5]));
+                    message[5]&&title);
                 } else if (message[0] === 'pageChanged') {
                     this.props.onPageChanged && this.props.onPageChanged(Number(message[1]), Number(message[2]));
                 } else if (message[0] === 'error') {
