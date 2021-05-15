@@ -98,6 +98,7 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 	NSTimer *_timerPosition;
     int _highlighter_page;
     int _isLandscape;
+    NSMutableArray<PDFAnnotation *> *_annotationsAdded;
 }
 
 - (instancetype)init
@@ -139,6 +140,7 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 		_initializing = NO;
         _isLandscape = 0;
         
+        _annotationsAdded =  [[NSMutableArray alloc] init];
         [self addSubview:_pdfView];
         
         
@@ -355,8 +357,8 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 					
 					NSArray *annotationstmp = [annotationPage annotations];
 					
-					NSMutableArray *annotations = [NSMutableArray arrayWithArray:annotationstmp];
-					for (id object in annotations) {
+//NSMutableArray *annotations = [NSMutableArray arrayWithArray:annotationstmp];
+					for (id object in _annotationsAdded) {
 						[annotationPage removeAnnotation:object];
 					}
 					iter++;
@@ -431,6 +433,7 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 						// annotation.iconType = kPDFTextAnnotationIconNote;
                         [annotationPage addAnnotation:annotation];
 						
+                        [_annotationsAdded addObject:annotation];
 						
                         /*
                         PDFAnnotation* annotation = [[PDFAnnotation alloc] initWithBounds:CGRectMake(206, 600, 60, 59) forType:PDFAnnotationSubtypeHighlight withProperties:nil];
