@@ -66,6 +66,7 @@ export default class Pdf extends Component {
         onAnnotationClicked:  PropTypes.func,
         onLongClick:  PropTypes.func,
         restoreViewState: PropTypes.string,
+	onPressLink: PropTypes.func,
         // Props that are not available in the earlier react native version, added to prevent crashed on android
         accessibilityLabel: PropTypes.string,
         importantForAccessibility: PropTypes.string,
@@ -122,6 +123,8 @@ export default class Pdf extends Component {
         onLongClick: (x, y, page, canAddAnnotation) => {
         },
         onSimpleClick: (x, y, page) => {
+        },
+	onPressLink: (url) => {
         },
     };
 
@@ -432,6 +435,9 @@ export default class Pdf extends Component {
                    // alert(1)
                     this.props.onAnnotationClicked && this.props.onAnnotationClicked(message[1]);
                 }
+		 else if (message[0] === 'linkPressed') {
+                this.props.onPressLink && this.props.onPressLink(message[1]);
+            }
 
 
 
@@ -498,6 +504,7 @@ export default class Pdf extends Component {
                                                 onError={this._onError}
                                                 onPageSingleTap={this.props.onPageSingleTap}
                                                 onScaleChanged={this.props.onScaleChanged}
+						onPressLink={this.props.onPressLink}
                                             />)
                                     )
                                 )}

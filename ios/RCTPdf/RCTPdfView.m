@@ -152,7 +152,7 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 	
         
         [[_pdfView document] setDelegate: self];
-        
+        [_pdfView setDelegate: self];
         
 		
         double delayInSeconds = 0.5;
@@ -524,6 +524,12 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
             _pdfView.backgroundColor = [UIColor blackColor];
         else
             _pdfView.backgroundColor = [UIColor whiteColor];
+        
+        if (@available(iOS 12, *)) {
+            if (_spacing == 0) {
+                [_pdfView enablePageShadows:NO];
+            }
+        }
 		/*if (@available(iOS 12, *)) {
 			[_pdfView enablePageShadows:NO];
 		}
@@ -536,6 +542,16 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
     }
 }
 
+- (void)PDFViewWillClickOnLink:(PDFView *)sender withURL:(NSURL *)url
+{
+    NSString *_url = url.absoluteString;
+    
+    NSLog(@"url %s", _url.UTF8String);
+    _onChange(@{ @"message":
+                     [[NSString alloc] initWithString:
+                      [NSString stringWithFormat:
+                       @"linkPressed|%s", _url.UTF8String]] });
+}
 
 - (void)reactSetFrame:(CGRect)frame
 {

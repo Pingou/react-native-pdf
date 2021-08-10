@@ -42,6 +42,8 @@ import com.github.barteksc.pdfviewer.listener.OnDrawListener;
 import com.github.barteksc.pdfviewer.listener.OnPageScrollListener;
 import com.github.barteksc.pdfviewer.util.FitPolicy;
 import com.github.barteksc.pdfviewer.util.Constants;
+import com.github.barteksc.pdfviewer.link.LinkHandler;
+import com.github.barteksc.pdfviewer.model.LinkTapEvent;
 
 import com.facebook.react.bridge.NativeModule;
 import com.facebook.react.bridge.ReactContext;
@@ -74,7 +76,7 @@ import com.google.gson.GsonBuilder;
 import com.shockwave.pdfium.util.SizeF;
 
 
-public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompleteListener,OnErrorListener,OnTapListener,OnDrawListener,OnPageScrollListener,OnLongPressListener {
+public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompleteListener,OnErrorListener,OnTapListener,OnDrawListener,OnPageScrollListener,OnLongPressListener, LinkHandler {
     private ThemedReactContext context;
     private int page = 1;               // start from 1
     private boolean horizontal = false;
@@ -677,6 +679,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                 .pageFling(this.pageFling)
                 .enableAnnotationRendering(this.enableAnnotationRendering)
                 .nightMode(this.enableDarkMode)
+		.linkHandler(this)
                 .load();
 
         }
@@ -757,6 +760,40 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
         }
 
     }
+	
+/**
+     * @see https://github.com/barteksc/AndroidPdfViewer/blob/master/android-pdf-viewer/src/main/java/com/github/barteksc/pdfviewer/link/DefaultLinkHandler.java
+     */
+    public void handleLinkEvent(LinkTapEvent event) {
+        String uri = event.getLink().getUri();
+        Integer page = event.getLink().getDestPageIdx();
+        if (uri != null && !uri.isEmpty()) {
+            handleUri(uri);
+        } else if (page != null) {
+            handlePage(page);
+        }
+    }
+
+    /**
+     * @see https://github.com/barteksc/AndroidPdfViewer/blob/master/android-pdf-viewer/src/main/java/com/github/barteksc/pdfviewer/link/DefaultLinkHandler.java
+     */
+    private void handleUri(String uri) {
+        WritableMap event = Arguments.createMap();
+        event.putString("message", "linkPressed|"+uri);
+
+        ReactContext reactContext = (ReactContext)this.getContext();
+        reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(
+            this.getId(),
+            "topChange",
+            event
+        );
+    }
+    /**
+     * @see https://github.com/barteksc/AndroidPdfViewer/blob/master/android-pdf-viewer/src/main/java/com/github/barteksc/pdfviewer/link/DefaultLinkHandler.java
+     */
+    private void handlePage(int page) {
+        this.jumpTo(page);
+    }
 
     public void sendCurrentViewState() {
 
@@ -820,5 +857,30 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
           return Uri.fromFile(new File(uri));
         }
         return parsed;
+    }
+
+    private void setTouchesEnabled(final boolean enabled) {
+        setTouchesEnabled(this, enabled);
+    }
+
+    private static void setTouchesEnabled(View v, final boolean enabled) {
+        if (enabled) {
+            v.setOnTouchListener(null);
+        } else {
+            v.setOnTouchListener(new View.OnTouchListener() {
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    return true;
+                }
+            });
+        }
+
+        if (v instanceof ViewGroup) {
+            ViewGroup vg = (ViewGroup) v;
+            for (int i = 0; i < vg.getChildCount(); i++) {
+                View child = vg.getChildAt(i);
+                setTouchesEnabled(child, enabled);
+            }
+        }
     }
 }
