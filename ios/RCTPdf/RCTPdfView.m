@@ -166,7 +166,7 @@ CGContextRef _context;
         _enableDarkMode = NO;
         _enableAnnotationRendering = YES;
         _fitPolicy = 2;
-        _spacing = 10;
+        _spacing = 0;
 		
 		_restoreViewState = @"";
 		_annotations = nil;
@@ -180,7 +180,7 @@ CGContextRef _context;
         _pdfView = [[MyPDFView alloc] initWithFrame:CGRectMake(0, 0, 500, 500)];
         _pdfView.displayMode = kPDFDisplaySinglePageContinuous;
         _pdfView.autoScales = YES;
-        _pdfView.displaysPageBreaks = YES;
+        _pdfView.displaysPageBreaks = NO;
         _pdfView.displayBox = kPDFDisplayBoxCropBox;
         
         _fixScaleFactor = -1.0f;
@@ -579,10 +579,10 @@ CGContextRef _context;
                             height = startY - endY;
                         }
                         else {
-                            startX = (pdfPageRect.size.width * (100 - xPercStart) / 100);
+                            startX = (pdfPageRect.size.width * xPercStart / 100);
                             startY = pdfPageRect.size.height - (pdfPageRect.size.height * yPercStart / 100);
-                            
-                            endX = pdfPageRect.size.width * (100 - xPercEnd) / 100;
+                                                        
+                            endX = pdfPageRect.size.width * xPercEnd / 100;
                             endY = pdfPageRect.size.height - (pdfPageRect.size.height * yPercEnd / 100);
                             
                             width = endX - startX;
