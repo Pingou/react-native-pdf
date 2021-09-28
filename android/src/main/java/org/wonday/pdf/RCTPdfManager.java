@@ -16,7 +16,11 @@ import android.util.Log;
 import android.graphics.PointF;
 import android.net.Uri;
 
+import androidx.annotation.Nullable;
+
+import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.NativeModule;
+import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.Arguments;
@@ -32,9 +36,12 @@ import com.facebook.react.common.MapBuilder;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 
 import static java.lang.String.format;
+
+import java.io.IOException;
 import java.lang.ClassCastException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import com.github.barteksc.pdfviewer.util.FitPolicy;
 
@@ -42,7 +49,7 @@ public class RCTPdfManager extends SimpleViewManager<PdfView> {
     private static final String REACT_CLASS = "RCTPdf";
     private Context context;
     private PdfView pdfView;
-
+    public static final int COMMAND_CONVERT_POINTS = 9549211;
 
     public RCTPdfManager(ReactApplicationContext reactContext){
         this.context = reactContext;
@@ -63,6 +70,48 @@ public class RCTPdfManager extends SimpleViewManager<PdfView> {
     public void onDropViewInstance(PdfView pdfView) {
         pdfView = null;
     }
+/*
+    @ReactProp(name = "getConvertedPoints")
+    public void setSaveImageFileInExtStorage(PdfView view, String jsonInput) {
+        //String output = view.convertPoints(jsonInput);
+    }
+*/
+    @Override
+    public Map<String,Integer> getCommandsMap() {
+        Log.d("React"," View manager getCommandsMap:");
+        return MapBuilder.of(
+                "getConvertedPoints",
+                COMMAND_CONVERT_POINTS);
+    }
+
+    @Override
+    public void receiveCommand(
+            PdfView view,
+            int commandType,
+            @Nullable ReadableArray args) {
+
+
+        switch (commandType) {
+            case COMMAND_CONVERT_POINTS: {
+                view.convertPoints(args.getString(0));
+                return;
+            }
+
+            default:
+                throw new IllegalArgumentException(String.format(
+                        "Unsupported command %d received by %s.",
+                        commandType,
+                        getClass().getSimpleName()));
+        }
+    }
+
+/*
+    @ReactMethod
+    public void getConvertedPoints(String jsonInput, Callback callback) {
+        String output = this.pdfView.convertPoints(jsonInput);
+
+        callback.invoke(output);
+    }*/
 
     @ReactProp(name = "path")
     public void setPath(PdfView pdfView, String path) {
@@ -158,6 +207,26 @@ public class RCTPdfManager extends SimpleViewManager<PdfView> {
             }
         }
         pdfView.setAnnotations(newList);
+
+    }
+
+    @ReactProp(name = "drawings")
+    public void setDrawings(PdfView pdfView, ReadableArray drawings) {
+
+        List<PdfView.PdfDrawing> newList = new ArrayList<>();
+        if (drawings != null) {
+
+
+
+            for (int i = 0; i < drawings.size(); i++) {
+                ReadableMap obj = drawings.getMap(i);
+
+                PdfView.PdfDrawing newDrawing = new PdfView.PdfDrawing(obj.getDouble("startX"), obj.getDouble("startY"),
+                        obj.getDouble("endX"), obj.getDouble("endY"), obj.getInt("pageNb"), obj.getString("imgPath"));
+                newList.add(newDrawing);
+            }
+        }
+        pdfView.setDrawings(newList);
 
     }
 

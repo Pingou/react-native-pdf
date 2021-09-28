@@ -25,7 +25,7 @@ import RNFetchBlob from 'rn-fetch-blob';
 const SHA1 = require('crypto-js/sha1');
 import resolveAssetSource from 'react-native/Libraries/Image/resolveAssetSource';
 import PdfView from './PdfView';
-
+import { UIManager, findNodeHandle } from "react-native"
 
 
 export default class Pdf extends Component {
@@ -77,7 +77,8 @@ export default class Pdf extends Component {
         accessibilityComponentType: PropTypes.string,
         annotations: PropTypes.array,
         highlightLines: PropTypes.array,
-        enableDarkMode: PropTypes.bool
+        enableDarkMode: PropTypes.bool,
+        drawings: PropTypes.array,
     };
 
     static defaultProps = {
@@ -97,6 +98,7 @@ export default class Pdf extends Component {
         activityIndicatorProps: {color: '#009900', progressTintColor: '#009900'},
         restoreViewState: "",
         annotations: [],
+        drawings: [],
         highlightLines: [],
         onLoadProgress: (percent) => {
         },
@@ -366,16 +368,45 @@ export default class Pdf extends Component {
         });
     }
 
+    getConvertedPoints(pointsIn, callback) {
+
+
+        
+        if (Platform.OS === "ios") {
+            const PdfViewManagerNative = require('react-native').NativeModules.PdfViewManager;
+             PdfViewManagerNative.getConvertedPoints(pointsIn, (points) => {
+               // alert(JSON.stringify(points))
+                callback(points)
+            });
+        }
+        else {
+             UIManager.dispatchViewManagerCommand(
+                    findNodeHandle(this._root),
+                    UIManager.RCTPdf.Commands.getConvertedPoints,
+                    [pointsIn],
+                );
+        }
+    
+        
+       
+    }
+
     _onChange = (event) => {
 
         let message = event.nativeEvent.message.split('|');
 
        
-        //__DEV__ && console.log("onChange: " + message);
+        __DEV__ && console.log("onChange: " + message);
         if (message.length > 0) {
 
 
 
+            if (message[0] === 'pointsConverted') {
+
+                  //  console.log("positionChanged", Number(message[1]), Number(message[2]), Number(message[3]), Number(message[4]), Number(message[5]))
+                 this.props.onPointsConverted && this.props.onPointsConverted(message[1]);
+               // alert(message[1])
+            }
             if (message[0] === 'positionChanged') {
 
                   //  console.log("positionChanged", Number(message[1]), Number(message[2]), Number(message[3]), Number(message[4]), Number(message[5]))

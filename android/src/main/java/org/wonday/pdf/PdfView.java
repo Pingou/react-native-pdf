@@ -16,6 +16,8 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Point;
+import android.graphics.Rect;
 import android.text.Layout;
 import android.text.StaticLayout;
 import android.text.TextPaint;
@@ -65,11 +67,16 @@ import java.io.InputStream;
 import java.lang.ClassCastException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
 import com.github.barteksc.pdfviewer.util.Util;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.shockwave.pdfium.PdfDocument;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -135,6 +142,18 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
         }
     }
 
+    public static class MyCoordinate {
+        public double x;
+        public double y;
+        public int pageNb;
+
+        public MyCoordinate(double x, double y, int pageNb) {
+            this.x = x;
+            this.y = y;
+            this.pageNb = pageNb;
+        }
+    }
+
     public static class PdfAnnotation {
         public double x;
         public double y;
@@ -162,6 +181,33 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
             this.icon = icon;
             this.size = size;
         }
+    }
+
+    public static class PdfDrawing {
+        public double startX;
+        public double startY;
+        public double endX;
+        public double endY;
+        public int pageNb;
+        public String title;
+        public String color;
+        public String icon;
+        public int size;
+        public Bitmap image;
+
+        public PdfDrawing() {
+
+        }
+        public PdfDrawing(double startX, double startY, double endX, double endY, int pageNb, String imgPath) {
+            this.startX = startX;
+            this.startY = startY;
+            this.endX = endX;
+            this.endY = endY;
+            this.pageNb = pageNb;
+
+            this.image = BitmapFactory.decodeFile(imgPath);
+        }
+
     }
 
     public static class PdfHighlightLine {
@@ -193,6 +239,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
 
     public List<PdfAnnotation> pdfAnnotations;
+    public List<PdfDrawing> pdfDrawings;
     public List<PdfHighlightLine> highlightLines;
 
     private Bitmap annotationBitmapZoom1;
@@ -241,6 +288,10 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
         this.pdfAnnotations = pdfAnnotations;
     }
 
+    public void setDrawings(List<PdfView.PdfDrawing> pdfDrawings) {
+        this.pdfDrawings = pdfDrawings;
+    }
+
     public void setHighlightLines(List<PdfView.PdfHighlightLine> pdfHighlightLines) {
         this.highlightLines = pdfHighlightLines;
     }
@@ -268,6 +319,90 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
     }
 
+    private void loadDrawingBitmap(float width, float height) {
+        try {
+            InputStream bit = this.context.getAssets().open("star.png");
+            Bitmap bitmap =BitmapFactory.decodeStream(bit);
+
+           // this.drawing = Bitmap.createScaledBitmap(bitmap, 60, 60, false);
+
+
+        } catch (IOException e1) {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+        }
+
+
+
+    }
+    
+    public void convertPoints(String stringInput) {
+        Gson gson = new Gson();
+
+
+        int viewWidth = this.getWidth();
+        Log.d("viewWidth:", " " + viewWidth);
+
+        JsonParser parser = new JsonParser();
+        JsonObject rootObj = parser.parse(stringInput).getAsJsonObject();
+        JsonArray array = rootObj.getAsJsonArray("points");
+
+        //ArrayList<HashMap<String, Float>> listOut = new ArrayList<HashMap<String, Float>>();
+
+        JsonObject mainObjOut = new JsonObject();
+        JsonArray pointArrayOut = new JsonArray();
+
+        int pageNb = instance.getCurrentPage();
+        for (JsonElement elem : array) {
+            JsonObject obj = elem.getAsJsonObject();
+            float x = Util.getDP(getContext(), (int)obj.get("x").getAsFloat());
+            float y = Util.getDP(getContext(), (int)obj.get("y").getAsFloat());
+
+            MyCoordinate coordinate = getPercentPosForPage(x, y, pageNb);
+           // HashMap<String, Float> values = new HashMap<String, Float>();
+
+           // values.put("x", (float)coordinate.x);
+          //  values.put("y", (float)coordinate.y);
+
+            JsonObject pointOut = new JsonObject();
+
+            pointOut.addProperty("x", coordinate.x);
+            pointOut.addProperty("y", coordinate.y);
+            pointArrayOut.add(pointOut);
+        }
+        mainObjOut.add("points", pointArrayOut);
+        mainObjOut.addProperty("pageNb", pageNb);
+
+
+        String out = mainObjOut.toString();
+
+        Log.d("points out", " " + out);
+        WritableMap event = Arguments.createMap();
+        event.putString("message", "pointsConverted|"+ out);
+        ReactContext reactContext = (ReactContext)this.getContext();
+        reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(
+                this.getId(),
+                "topChange",
+                event
+        );
+       // return mainObjOut.getAsString();
+    }
+
+    public MyCoordinate convertPoint(float x, float y) {
+        int pageNb = instance.getCurrentPage();
+        MyCoordinate results = getPercentPosForPage(x, y, pageNb);
+
+        if (results.y > 100) {
+            pageNb += 1;
+            results = getPercentPosForPage(x, y, pageNb);
+        }
+        else if (results.y < 0) {
+            pageNb -= 1;
+            results = getPercentPosForPage(x, y, pageNb);
+        }
+
+        return results;
+    }
 
     public Bitmap getAnnotationBitmap(int zoom) {
         Log.d("plop zoom", " " + zoom);
@@ -427,7 +562,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
     public void onLayerDrawn(Canvas canvas, float pageWidth, float pageHeight, int displayedPage){
 
 
-        if (this.pageWidths[displayedPage] >0 && this.pageHeights[displayedPage]>0 && (pageWidth!=this.pageWidths[displayedPage] || pageHeight!=this.pageHeights[displayedPage])) {
+        if (this.pageWidths[displayedPage] > 0 && this.pageHeights[displayedPage]> 0 && (pageWidth!=this.pageWidths[displayedPage] || pageHeight!=this.pageHeights[displayedPage])) {
 
             // maybe change by other instance, restore zoom setting
             Constants.Pinch.MINIMUM_ZOOM = this.minScale;
@@ -448,6 +583,73 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
         this.pageWidths[displayedPage] = pageWidth;
         this.pageHeights[displayedPage] = pageHeight;
+
+        if (instance != null && pdfDrawings != null) {
+
+            for (PdfDrawing pdfDrawing : pdfDrawings) {
+
+                if (pdfDrawing.pageNb == displayedPage || pdfDrawing.pageNb == displayedPage - 1 || pdfDrawing.pageNb == displayedPage + 1) {
+                    try {
+                        // InputStream bit = this.context.getAssets().open("star.png");
+                        // Bitmap bitmap = BitmapFactory.decodeStream(bit);
+
+                        //Bitmap bitmapResized = Bitmap.createScaledBitmap(bitmap, 260, (int) (pageHeight + (pageHeight / 2)), false);
+
+                        float paddingX = 0.0f;
+                        try {
+                            if (instance.isSwipeVertical()) {
+                                paddingX = instance.getSecondaryPageOffset(displayedPage, this.getZoom());
+                            } else {
+                                paddingX = instance.getPageOffset(displayedPage, this.getZoom());
+                            }
+                        } catch (Exception e) {
+
+                        }
+
+
+                        double startX = pageWidth * (pdfDrawing.startX / 100.0f) + paddingX;
+                        double startY = pageHeight * (pdfDrawing.startY / 100.0f);
+                        double endX = pageWidth * (pdfDrawing.endX / 100.0f) + paddingX;
+                        double endY = pageHeight * (pdfDrawing.endY / 100.0f);
+
+
+                        if (pdfDrawing.pageNb == displayedPage + 1) {
+                            startY += pageHeight + Util.getDP(getContext(), this.spacing);
+                            endY += pageHeight + Util.getDP(getContext(), this.spacing);
+                        } else if (pdfDrawing.pageNb == displayedPage - 1) {
+                            startY -= pageHeight + Util.getDP(getContext(), this.spacing);
+                            endY -= pageHeight + Util.getDP(getContext(), this.spacing);
+                        }
+
+                        /*
+                        if (pdfDrawing.pageNb == displayedPage + 1) {
+                            startY += pageHeight + Util.getDP(getContext(), this.spacing);
+                            endY += pageHeight + Util.getDP(getContext(), this.spacing);
+                        }
+                        else if (pdfDrawing.pageNb == displayedPage - 1) {
+                            startY -= pageHeight + Util.getDP(getContext(), this.spacing);
+                            endY -= pageHeight + Util.getDP(getContext(), this.spacing);
+                        }
+*/
+                        Rect rect = new Rect();
+                        rect.left = (int) startX;
+                        rect.right = (int) endX;
+                        rect.top = (int) startY;
+                        rect.bottom = (int) endY;
+
+
+                        canvas.drawBitmap(pdfDrawing.image
+                                , null
+                                , rect
+                                , null);
+
+
+                    } catch (Exception e) {
+                        Log.d("error", e.getMessage());
+                    }
+                }
+            }
+        }
 
         if (instance != null && highlightLines != null) {
             for (PdfHighlightLine highlightLine : highlightLines) {
@@ -517,6 +719,8 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                 }
             }
         }
+
+
 
         if (instance != null && pdfAnnotations != null) {
             for (PdfAnnotation pdfAnnotation : pdfAnnotations) {
@@ -603,23 +807,24 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
     private PdfAnnotation getAnnotationAtPos(float x, float y) {
         int pageNb = instance.getCurrentPage();
-        PdfAnnotation results = getPercentPosForPage(x, y, pageNb);
+        PdfAnnotation results = getPercentPosForPageAsAnnotation(x, y, pageNb);
 
         if (results.y > 100) {
             pageNb += 1;
-            results = getPercentPosForPage(x, y, pageNb);
+            results = getPercentPosForPageAsAnnotation(x, y, pageNb);
         }
         else if (results.y < 0) {
             pageNb -= 1;
-            results = getPercentPosForPage(x, y, pageNb);
+            results = getPercentPosForPageAsAnnotation(x, y, pageNb);
         }
 
         return results;
     }
 
-    private PdfAnnotation getPercentPosForPage(float x, float y, int page) {
+    private MyCoordinate getPercentPosForPage(float x, float y, int page) {
         float xPer = 0;
         float yPer = 0;
+
         try {
             float xPositionInRealScale = instance.toRealScale(-instance.getCurrentXOffset() + x);
             float yPositionInRealScale = instance.toRealScale(-instance.getCurrentYOffset() + y);
@@ -638,7 +843,14 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
         catch (Exception e) {
 
         }
-        return new PdfAnnotation(xPer, yPer, page);
+        return new MyCoordinate(xPer, yPer, page);
+    }
+    
+    private PdfAnnotation getPercentPosForPageAsAnnotation(float x, float y, int page) {
+
+        MyCoordinate coordinate = this.getPercentPosForPage(x, y, page);
+
+        return new PdfAnnotation(coordinate.x, coordinate.y, coordinate.pageNb);
     }
 
     public void drawPdf() {

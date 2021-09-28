@@ -11,6 +11,7 @@
 #import "RCTPdfViewManager.h"
 #import "RCTPdfView.h"
 
+RCTPdfView *RctpdfView;
 
 @implementation RCTPdfViewManager
 
@@ -20,7 +21,9 @@ RCT_EXPORT_MODULE()
 {
     if([[[UIDevice currentDevice] systemVersion] compare:@"11.0" options:NSNumericSearch] == NSOrderedDescending
        || [[[UIDevice currentDevice] systemVersion] compare:@"11.0" options:NSNumericSearch] == NSOrderedSame) {
-        return [[RCTPdfView alloc] init];
+        RctpdfView = [[RCTPdfView alloc] init];
+        
+        return RctpdfView;
     } else {
         return NULL;
     }
@@ -42,6 +45,7 @@ RCT_EXPORT_VIEW_PROPERTY(password, NSString);
 RCT_EXPORT_VIEW_PROPERTY(onChange, RCTBubblingEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(restoreViewState, NSString);
 RCT_EXPORT_VIEW_PROPERTY(annotations, NSArray);
+RCT_EXPORT_VIEW_PROPERTY(drawings, NSArray);
 RCT_EXPORT_VIEW_PROPERTY(highlightLines, NSArray);
 RCT_EXPORT_VIEW_PROPERTY(enableDarkMode, BOOL);
 
@@ -54,6 +58,22 @@ RCT_EXPORT_METHOD(supportPDFKit:(RCTResponseSenderBlock)callback)
         callback(@[@NO]);
     }
     
+}
+
+RCT_EXPORT_METHOD(getConvertedPoints:(NSString *)input :(RCTResponseSenderBlock)callback)
+{
+    
+   // NSString *output = [RctpdfView convertPoints:@"{\"points\":[{\"x\":0, \"y\":0}, {\"x\":12, \"y\":122}, {\"x\":31, \"y\":2}]}"];
+    NSString *output = [RctpdfView convertPoints:input];
+    callback(@[output]);
+  /*
+    if([[[UIDevice currentDevice] systemVersion] compare:@"11.0" options:NSNumericSearch] == NSOrderedDescending
+       || [[[UIDevice currentDevice] systemVersion] compare:@"11.0" options:NSNumericSearch] == NSOrderedSame) {
+        callback(@[@YES]);
+    } else {
+        callback(@[@NO]);
+    }
+    */
 }
 
 + (BOOL)requiresMainQueueSetup {
