@@ -147,6 +147,7 @@ CGContextRef _context;
     int _isLandscape;
     NSMutableArray<PDFAnnotation *> *_annotationsAdded;
     NSMutableArray<PDFImageAnnotation *> *_drawingsAdded;
+    int _lastDrawingDrawnWhenPageWasAt;
 }
 
 - (instancetype)init
@@ -173,6 +174,7 @@ CGContextRef _context;
         _drawings = nil;
         _highlightLines = nil;
         _highlighter_page = 0;
+        _lastDrawingDrawnWhenPageWasAt = -42;
         
 		_timerPosition = nil;
 		
@@ -357,6 +359,7 @@ CGContextRef _context;
         if (_pdfDocument && ([changedProps containsObject:@"path"] || [changedProps containsObject:@"enablePaging"] || [changedProps containsObject:@"horizontal"] || [changedProps containsObject:@"page"] || [changedProps containsObject:@"restoreViewState"] || [changedProps containsObject:@"annotations"] || [changedProps containsObject:@"highlightLines"] || [changedProps containsObject:@"drawings"])) {
 			
             
+            
             PDFPage *pdfPage = nil;
             if (_page == -1)
                 pdfPage = [_pdfDocument pageAtIndex:0];
@@ -403,9 +406,10 @@ CGContextRef _context;
         }
         
         
-        if (_pdfDocument && ([changedProps containsObject:@"annotations"] || [changedProps containsObject:@"highlightLines"] || [changedProps containsObject:@"drawings"])) {
+        if (_pdfDocument && ([changedProps containsObject:@"annotations"] || [changedProps containsObject:@"highlightLines"] || [changedProps containsObject:@"drawings"] || _lastDrawingDrawnWhenPageWasAt != _page)) {
             
             
+            _lastDrawingDrawnWhenPageWasAt = _page;
             PDFPage *pdfPage = nil;
             if (_page == -1)
                 pdfPage = [_pdfDocument pageAtIndex:0];
@@ -542,6 +546,8 @@ CGContextRef _context;
                         
                         NSString *path = [object objectForKey:@"imgPath"];
                         
+                        if (pageNb > _page + 2 || pageNb < _page - 2)
+                            continue;
                       
                         pdfPage = [_pdfDocument pageAtIndex:pageNb];
                         CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxCropBox];
@@ -1205,7 +1211,7 @@ CGContextRef _context;
             maxY = y;
     }
     
-    PDFPage *pdfPageStart = [_pdfView pageForPoint:CGPointMake(0, 899) nearest:YES];
+    PDFPage *pdfPageStart = [_pdfView pageForPoint:CGPointMake(0, maxY) nearest:YES];
     page = [_pdfDocument indexForPage:pdfPageStart];
     
     for (id object in pointsArray) {
@@ -1330,7 +1336,7 @@ CGContextRef _context;
     // Making sure the allowable movement isn not too narrow
     longPressRecognizer.allowableMovement=300;
     // Important: The duration must be long enough to allow taps but not longer than the period in which view opens the magnifying glass
-    longPressRecognizer.minimumPressDuration=1.0;
+    longPressRecognizer.minimumPressDuration=0.3;
     
     [_pdfView addGestureRecognizer2:longPressRecognizer];
 	
