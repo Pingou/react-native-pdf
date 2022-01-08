@@ -183,7 +183,7 @@ CGContextRef _context;
         _pdfView.displayMode = kPDFDisplaySinglePageContinuous;
         _pdfView.autoScales = YES;
         _pdfView.displaysPageBreaks = NO;
-        _pdfView.displayBox = kPDFDisplayBoxCropBox;
+        _pdfView.displayBox = kPDFDisplayBoxMediaBox;
         
         _fixScaleFactor = -1.0f;
         _initialed = NO;
@@ -286,7 +286,7 @@ CGContextRef _context;
         if (_pdfDocument && ([changedProps containsObject:@"path"] || [changedProps containsObject:@"fitPolicy"] || [changedProps containsObject:@"minScale"] || [changedProps containsObject:@"maxScale"] || [changedProps containsObject:@"restoreViewState"])) {
             
             PDFPage *pdfPage = [_pdfDocument pageAtIndex:_pdfDocument.pageCount-1];
-            CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxCropBox];
+            CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxMediaBox];
             
             // some pdf with rotation, then adjust it
             if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
@@ -369,7 +369,7 @@ CGContextRef _context;
 				
 				
 				
-                CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxCropBox];
+                CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxMediaBox];
                 
                 // some pdf with rotation, then adjust it
                 if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
@@ -464,7 +464,7 @@ CGContextRef _context;
                         long fontSize = [[object objectForKey:@"size"] integerValue];
                         
                         pdfPage = [_pdfDocument pageAtIndex:pageNb];
-                        CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxCropBox];
+                        CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxMediaBox];
                         
                         
                         float x = 0;
@@ -550,7 +550,7 @@ CGContextRef _context;
                             continue;
                       
                         pdfPage = [_pdfDocument pageAtIndex:pageNb];
-                        CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxCropBox];
+                        CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxMediaBox];
                         
                         
                         float startX = 0;
@@ -648,7 +648,7 @@ CGContextRef _context;
                         NSString *color = (NSString *)[object objectForKey:@"color"];
                     
                         pdfPage = [_pdfDocument pageAtIndex:pageNb];
-                        CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxCropBox];
+                        CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxMediaBox];
                         
                         //sur android c'est plus petit que sur ios, on ajuste
                         //size = size * 0.8;
@@ -990,7 +990,7 @@ CGContextRef _context;
         
         BOOL canEdit = [_pdfDocument allowsCommenting];
       
-        CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxCropBox];
+        CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxMediaBox];
         
         
         float x;
@@ -1053,7 +1053,7 @@ CGContextRef _context;
 		point = [_pdfView convertPoint:point toPage:pdfPage];
 		
 		
-		CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxCropBox];
+		CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxMediaBox];
 		
 		
 		if (_annotations && [_annotations count] > 0) {
@@ -1163,7 +1163,7 @@ CGContextRef _context;
 //            [self ShowAlert:str];
 //        }
 //
-		CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxCropBox];
+		CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxMediaBox];
 		
 		
 		float x;
@@ -1256,7 +1256,7 @@ CGContextRef _context;
         NSLog(@"xcode converted point: %f %f", point.x, point.y);
         //CGRect cgrect = [_pdfView convertRect:point toPage:pdfPage];
         
-        CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxCropBox];
+        CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxMediaBox];
         
         
         float x;
