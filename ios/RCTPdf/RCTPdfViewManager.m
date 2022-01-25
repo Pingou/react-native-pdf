@@ -76,6 +76,25 @@ RCT_EXPORT_METHOD(getConvertedPoints:(NSString *)input :(RCTResponseSenderBlock)
     */
 }
 
+
+RCT_EXPORT_METHOD(setHighlighterPos:(int)isVertical :(float)positionPercent :(int)pageNb)
+{
+    
+   // NSString *output = [RctpdfView convertPoints:@"{\"points\":[{\"x\":0, \"y\":0}, {\"x\":12, \"y\":122}, {\"x\":31, \"y\":2}]}"];
+    [RctpdfView setHighlighterPos:isVertical :positionPercent :pageNb];
+
+  /*
+    if([[[UIDevice currentDevice] systemVersion] compare:@"11.0" options:NSNumericSearch] == NSOrderedDescending
+       || [[[UIDevice currentDevice] systemVersion] compare:@"11.0" options:NSNumericSearch] == NSOrderedSame) {
+        callback(@[@YES]);
+    } else {
+        callback(@[@NO]);
+    }
+    */
+}
+
+
+
 + (BOOL)requiresMainQueueSetup {
     return YES;
 }

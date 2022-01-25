@@ -148,6 +148,12 @@ CGContextRef _context;
     NSMutableArray<PDFAnnotation *> *_annotationsAdded;
     NSMutableArray<PDFImageAnnotation *> *_drawingsAdded;
     int _lastDrawingDrawnWhenPageWasAt;
+    float _horizontalHighlightPosPercent;
+    int _horizontalHighlightPosPageNb;
+    float _verticalHighlightPosPercent;
+    int _verticalHighlightPosPageNb;
+    bool _hasSentPosInit;
+    float _lastZoomLevel;
 }
 
 - (instancetype)init
@@ -191,6 +197,11 @@ CGContextRef _context;
 		_initializing = NO;
         _isLandscape = 0;
         
+        _horizontalHighlightPosPercent = -42.0f;
+        _verticalHighlightPosPercent = -42.0f;
+        _hasSentPosInit = false;
+        _lastZoomLevel = -1;
+        
         _annotationsAdded =  [[NSMutableArray alloc] init];
         _drawingsAdded =  [[NSMutableArray alloc] init];
         [self addSubview:_pdfView];
@@ -201,6 +212,7 @@ CGContextRef _context;
         [center addObserver:self selector:@selector(onDocumentChanged:) name:PDFViewDocumentChangedNotification object:_pdfView];
         [center addObserver:self selector:@selector(onPageChanged:) name:PDFViewPageChangedNotification object:_pdfView];
         [center addObserver:self selector:@selector(onScaleChanged:) name:PDFViewScaleChangedNotification object:_pdfView];
+        [center addObserver:self selector:@selector(onDisplayChanged:) name:PDFViewDisplayBoxChangedNotification object:_pdfView];
 	
         
         [[_pdfView document] setDelegate: self];
@@ -228,6 +240,24 @@ CGContextRef _context;
         if (_initializing == YES)
 			return;
 		_initializing = YES;
+        
+        float zoomFromRestoreViewState = 0;
+        
+        if ([changedProps containsObject:@"restoreViewState"]) {
+            NSArray *array = [_restoreViewState componentsSeparatedByString:@"/"];
+            
+            if (array.count > 12) {
+            _verticalHighlightPosPercent = [array[9] floatValue];
+            _horizontalHighlightPosPercent = [array[10] floatValue];
+            _verticalHighlightPosPageNb = [array[11] intValue];
+            _horizontalHighlightPosPageNb = [array[12] intValue];
+            zoomFromRestoreViewState = [array[5] floatValue];
+            }
+            
+            
+            
+           
+        }
         if ([changedProps containsObject:@"path"]) {
             
             NSURL *fileURL = [NSURL fileURLWithPath:_path];
@@ -302,6 +332,7 @@ CGContextRef _context;
                 _fixScaleFactor = -1.0f;
                 _minScale = MIN_SCALE;
                 _maxScale = MAX_SCALE;
+                
 			}
 			
             if (_fitPolicy == 0) {
@@ -726,7 +757,11 @@ CGContextRef _context;
         [self setNeedsDisplay];
         
         
-        
+        if (!_hasSentPosInit || zoomFromRestoreViewState != _lastZoomLevel) {
+            _hasSentPosInit = true;
+            _lastZoomLevel = zoomFromRestoreViewState;
+            [self sendNewPosition];
+        }
     }
 }
 
@@ -760,6 +795,7 @@ CGContextRef _context;
     [[NSNotificationCenter defaultCenter] removeObserver:self name:@"PDFViewDocumentChangedNotification" object:nil];
     [[NSNotificationCenter defaultCenter] removeObserver:self name:@"PDFViewPageChangedNotification" object:nil];
     [[NSNotificationCenter defaultCenter] removeObserver:self name:@"PDFViewScaleChangedNotification" object:nil];
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:@"PDFViewDisplayBoxChangedNotification" object:nil];
 	
 	
 	if (_timerPosition) {
@@ -934,6 +970,11 @@ CGContextRef _context;
 }
 
 
+- (void)onDisplayChanged:(NSNotification *)noti
+{
+    [self didMove];
+}
+
 
 #pragma mark gesture process
 
@@ -1039,7 +1080,7 @@ CGContextRef _context;
  *  @param recognizer
  */
 -(void)handlePan:(UIPanGestureRecognizer *)sender{
-    [self onScaleChanged:Nil];
+    ///[self onScaleChanged:Nil];
     
     [self didMove];
 }
@@ -1121,12 +1162,99 @@ CGContextRef _context;
     });
 }
 
+- (void) setHighlighterPos:(int )isVertical :(float)positionPercent :(int)pageNb
+{
+    if (isVertical == 0) {
+        _horizontalHighlightPosPercent = positionPercent;
+        _horizontalHighlightPosPageNb = pageNb;
+    }
+    else {
+        _verticalHighlightPosPercent = positionPercent;
+        _verticalHighlightPosPageNb = pageNb;
+    }
+    
+}
+
+
+
+- (float) getHighlighterHorizontalPos :(unsigned long) currentPageNb
+{
+    if (_horizontalHighlightPosPercent == -42.0f)
+        return 0;
+    
+    PDFPage *pdfPage = [_pdfDocument pageAtIndex:_horizontalHighlightPosPageNb];
+    
+    CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxMediaBox];
+    
+    
+    float x = 0;
+    float y = 0;
+    
+    if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
+       x = (pdfPageRect.size.width * (100 - 50) / 100) - (pdfPageRect.size.height - pdfPageRect.size.width);
+       y = (pdfPageRect.size.height * _horizontalHighlightPosPercent / 100);
+    }
+    else {
+        x = pdfPageRect.size.width - (pdfPageRect.size.width * 50 / 100);
+        y = pdfPageRect.size.height - (pdfPageRect.size.height * _horizontalHighlightPosPercent / 100);
+    }
+    
+    CGRect targetRect = CGRectMake( x - 5, y, 100, 100);
+
+    
+    CGPoint tmpP = CGPointMake(100,  targetRect.origin.y);
+    CGPoint newPoint = [_pdfView convertPoint:tmpP fromPage:pdfPage];
+    
+   // NSLog(@"newPoint: %f, currentPage %i, highlightPage %i", newPoint.y, currentPageNb, _horizontalHighlightPosPageNb);
+    
+    
+    return newPoint.y;
+}
+
+
+- (float) getHighlighterVerticalPos :(unsigned long) currentPageNb
+{
+    if (_verticalHighlightPosPercent == -42.0f)
+        return 0;
+    
+    PDFPage *pdfPage = [_pdfDocument pageAtIndex:_verticalHighlightPosPageNb];
+    
+    CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxMediaBox];
+    
+    
+    float x = 0;
+    float y = 0;
+
+    if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
+       x = (pdfPageRect.size.width * (_verticalHighlightPosPercent) / 100) - (pdfPageRect.size.height - pdfPageRect.size.width);
+       y = (pdfPageRect.size.height * 50 / 100);
+    }
+    else {
+        x = pdfPageRect.size.width * _verticalHighlightPosPercent / 100;
+        y = pdfPageRect.size.height - (pdfPageRect.size.height * 50 / 100);
+    }
+    
+    CGRect targetRect = CGRectMake(x, y, 10, 10);
+
+    
+    CGPoint tmpP = CGPointMake(targetRect.origin.x,  10);
+    CGPoint newPoint = [_pdfView convertPoint:tmpP fromPage:pdfPage];
+    
+    NSLog(@"newPoint: %f, currentPage %i, highlightPageNb %i _verticalHighlightPosPageNb %f", newPoint.x, currentPageNb, _verticalHighlightPosPageNb, _verticalHighlightPosPercent);
+    
+    
+    return newPoint.x;
+}
+
+
+
 /**
  *  Do nothing on long Press
  *
  *
  */
 - (void)handleLongPress:(UILongPressGestureRecognizer *)sender{
+    
 	CGPoint point = [sender locationInView:self];
 	
    // PDFImageAnnotation *annotation = [_drawingsAdded objectAtIndex:0];
@@ -1279,6 +1407,7 @@ CGContextRef _context;
     return CGPointMake(0, 0);
 }
 
+
 - (void)disableLongPressSubviews:(UIView *)view
 {
     
@@ -1323,10 +1452,10 @@ CGContextRef _context;
     [self addGestureRecognizer:pinchRecognizer];
     pinchRecognizer.delegate = self;
     
-//    UIPanGestureRecognizer *panRecognizer = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
-//    [_pdfView addGestureRecognizer2:panRecognizer];
-//    panRecognizer.delegate = self;
-//
+    UIPanGestureRecognizer *panRecognizer = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
+    [_pdfView addGestureRecognizer2:panRecognizer];
+    panRecognizer.delegate = self;
+
     
 
     [self disableLongPressSubviews:_pdfView];
@@ -1362,11 +1491,11 @@ CGContextRef _context;
 	swipeDown.direction = UISwipeGestureRecognizerDirectionDown;
 	[_pdfView addGestureRecognizer2:swipeDown];
     swipeDown.delegate = self;
+
 }
 
 - (void)sendNewPosition
 {
-	
     PDFPage *pdfPage = [_pdfDocument pageAtIndex:0];
     CGRect savedRect2 = [_pdfView convertRect:_pdfView.bounds toPage:pdfPage];
     
@@ -1391,15 +1520,17 @@ CGContextRef _context;
     }
 	float zoom = _pdfView.scaleFactor/_fixScaleFactor;
 	//onPositionChanged={(currentPage, pageFocusX, pageFocusY, zoom, positionOffset)
-	_onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"iosPositionChanged|%lu|%f|%f|%f|%f|%f|%f|%d", (pageNb + 1), savedRect.origin.x,  savedRect.origin.y, savedRect.size.width, savedRect.size.height, zoom, posYFromSelectedPage, _isLandscape]]});
+    _onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"iosPositionChanged|%lu|%f|%f|%f|%f|%f|%f|%d|%f|%f|%f", (pageNb + 1), savedRect.origin.x,  savedRect.origin.y, savedRect.size.width, savedRect.size.height, zoom, posYFromSelectedPage, _isLandscape,  [self getHighlighterHorizontalPos :pageNb], [self getHighlighterVerticalPos :pageNb] ]]});
 	
 	
-//	NSLog(@"sending new pos %f", savedRect.origin.y);
+	//NSLog(@"has moved sending new pos %f", savedRect.origin.y);
 }
 
 
 - (void)didMove
 {
+    
+   // NSLog(@"has moved");
 	if (_timerPosition) {
 		[_timerPosition invalidate];
 	}

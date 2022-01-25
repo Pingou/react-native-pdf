@@ -391,6 +391,20 @@ export default class Pdf extends Component {
        
     }
 
+    setHighlighterPos(isVertical, posPercent, pageNb) {
+        if (Platform.OS === "ios") {
+            const PdfViewManagerNative = require('react-native').NativeModules.PdfViewManager;
+             PdfViewManagerNative.setHighlighterPos(isVertical, posPercent, pageNb);
+        }
+       /* else {
+             UIManager.dispatchViewManagerCommand(
+                    findNodeHandle(this._root),
+                    UIManager.RCTPdf.Commands.getConvertedPoints,
+                    [pointsIn],
+                );
+        }*/
+    }
+
     _onChange = (event) => {
 
         let message = event.nativeEvent.message.split('|');
@@ -415,7 +429,7 @@ export default class Pdf extends Component {
             }
             else if (message[0] === 'iosPositionChanged') {
                     console.log('iosPositionChanged', message)
-                    this.props.onIosPositionChanged && this.props.onIosPositionChanged(Number(message[1]), Number(message[2]), Number(message[3]), Number(message[4]), Number(message[5]), Number(message[6]), Number(message[7]), Number(message[8]) );
+                    this.props.onIosPositionChanged && this.props.onIosPositionChanged(Number(message[1]), Number(message[2]), Number(message[3]), Number(message[4]), Number(message[5]), Number(message[6]), Number(message[7]), Number(message[8]), Number(message[9]), Number(message[10]), Number(message[11]) );
                 }
             else {
                 if (message.length > 5 && message[0] !== 'loadComplete') {
