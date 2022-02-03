@@ -40,6 +40,7 @@ import static java.lang.String.format;
 import java.io.IOException;
 import java.lang.ClassCastException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -50,6 +51,7 @@ public class RCTPdfManager extends SimpleViewManager<PdfView> {
     private Context context;
     private PdfView pdfView;
     public static final int COMMAND_CONVERT_POINTS = 9549211;
+    public static final int COMMAND_SET_HIGHLIGHTER_POS = 9549212;
 
     public RCTPdfManager(ReactApplicationContext reactContext){
         this.context = reactContext;
@@ -78,10 +80,16 @@ public class RCTPdfManager extends SimpleViewManager<PdfView> {
 */
     @Override
     public Map<String,Integer> getCommandsMap() {
-        Log.d("React"," View manager getCommandsMap:");
-        return MapBuilder.of(
+
+        HashMap map = new HashMap<String, Integer>();
+        map.put("getConvertedPoints", COMMAND_CONVERT_POINTS);
+        map.put("setHighlighterPos", COMMAND_SET_HIGHLIGHTER_POS);
+
+        return map;
+        //Log.d("React"," View manager getCommandsMap:");
+      /*  return MapBuilder.of(
                 "getConvertedPoints",
-                COMMAND_CONVERT_POINTS);
+                COMMAND_CONVERT_POINTS);*/
     }
 
     @Override
@@ -94,6 +102,10 @@ public class RCTPdfManager extends SimpleViewManager<PdfView> {
         switch (commandType) {
             case COMMAND_CONVERT_POINTS: {
                 view.convertPoints(args.getString(0));
+                return;
+            }
+            case COMMAND_SET_HIGHLIGHTER_POS: {
+                view.setHighlighterPos(args.getInt(0), (float)args.getDouble(1), args.getInt(2));
                 return;
             }
 
@@ -186,8 +198,12 @@ public class RCTPdfManager extends SimpleViewManager<PdfView> {
             return;
         String[] valuesTab = values.split("/");
 
-
-        pdfView.restoreViewState(Integer.valueOf(valuesTab[0]), Float.valueOf(valuesTab[1]), Float.valueOf(valuesTab[2]), Float.valueOf(valuesTab[3]));
+        if (valuesTab.length == 4) {
+            pdfView.setHighlighterPos(1, Float.valueOf(valuesTab[0]), Integer.valueOf(valuesTab[2]));
+            pdfView.setHighlighterPos(0, Float.valueOf(valuesTab[1]), Integer.valueOf(valuesTab[3]));
+        }
+        else
+            pdfView.restoreViewState(Integer.valueOf(valuesTab[0]), Float.valueOf(valuesTab[1]), Float.valueOf(valuesTab[2]), Float.valueOf(valuesTab[3]), Float.valueOf(valuesTab[5]), Float.valueOf(valuesTab[6]), Integer.valueOf(valuesTab[7]), Integer.valueOf(valuesTab[8]), Integer.valueOf(valuesTab[9]));
     }
 
     @ReactProp(name = "annotations")

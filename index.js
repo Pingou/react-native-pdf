@@ -371,7 +371,6 @@ export default class Pdf extends Component {
     getConvertedPoints(pointsIn, callback) {
 
 
-        
         if (Platform.OS === "ios") {
             const PdfViewManagerNative = require('react-native').NativeModules.PdfViewManager;
              PdfViewManagerNative.getConvertedPoints(pointsIn, (points) => {
@@ -396,13 +395,13 @@ export default class Pdf extends Component {
             const PdfViewManagerNative = require('react-native').NativeModules.PdfViewManager;
              PdfViewManagerNative.setHighlighterPos(isVertical, posPercent, pageNb);
         }
-       /* else {
+        else {
              UIManager.dispatchViewManagerCommand(
                     findNodeHandle(this._root),
-                    UIManager.RCTPdf.Commands.getConvertedPoints,
-                    [pointsIn],
+                    UIManager.RCTPdf.Commands.setHighlighterPos,
+                    [isVertical, posPercent, pageNb],
                 );
-        }*/
+        }
     }
 
     _onChange = (event) => {
@@ -424,7 +423,7 @@ export default class Pdf extends Component {
             if (message[0] === 'positionChanged') {
 
                   //  console.log("positionChanged", Number(message[1]), Number(message[2]), Number(message[3]), Number(message[4]), Number(message[5]))
-                 this.props.onPositionChanged && this.props.onPositionChanged(Number(message[1]), Number(message[2]), Number(message[3]), Number(message[4]), Number(message[5]), Number(message[6]), Number(message[7]), Number(message[8]), Number(message[9]));
+                 this.props.onPositionChanged && this.props.onPositionChanged(Number(message[1]), Number(message[2]), Number(message[3]), Number(message[4]), Number(message[5]), Number(message[6]), Number(message[7]), Number(message[8]), Number(message[9]), Number(message[10]), Number(message[11]));
                // alert(message[1])
             }
             else if (message[0] === 'iosPositionChanged') {

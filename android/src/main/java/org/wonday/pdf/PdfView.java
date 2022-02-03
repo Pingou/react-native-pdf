@@ -18,6 +18,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.os.Looper;
 import android.text.Layout;
 import android.text.StaticLayout;
 import android.text.TextPaint;
@@ -30,6 +31,8 @@ import android.net.Uri;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.graphics.Canvas;
+import android.widget.Toast;
+
 import javax.annotation.Nullable;
 
 
@@ -117,7 +120,17 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
    // private boolean loadComplete = false;
    // private long lastLoadingTime = 0;
    private String lastPath;
-    private PdfViewState savedViewState = null;
+    public PdfViewState savedViewState = null;
+
+    private float highlighterHorizontalPos = -42.0f;
+    private int highlighterHorizontalPageNb = -1;
+    private float highlighterVerticalPos = -42.0f;
+    private int highlighterVerticalPageNb = -1;
+
+    public boolean isWaitingForTimer = false;
+
+    private int lastDrawnPdfVersion = -1;
+    private int pdfVersionToDraw = -1;
 
     static class MyTimerTask extends TimerTask {
         WritableMap event;
@@ -304,7 +317,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
         try {
             InputStream bit = this.context.getAssets().open("star.png");
-            Bitmap bitmap =BitmapFactory.decodeStream(bit);
+            Bitmap bitmap = BitmapFactory.decodeStream(bit);
 
             this.annotationBitmapZoom1 = Bitmap.createScaledBitmap(bitmap, 60, 60, false);
             this.annotationBitmapZoom2 = Bitmap.createScaledBitmap(bitmap, 60, 60, false);
@@ -314,7 +327,6 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
             // TODO Auto-generated catch block
             e1.printStackTrace();
         }
-
 
 
     }
@@ -335,13 +347,26 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
 
     }
-    
+
+    public void setHighlighterPos(int isVertical, float posPercent, int pageNb) {
+
+        if (isVertical == 1) {
+            highlighterVerticalPos = posPercent;
+            highlighterVerticalPageNb = pageNb;
+        }
+        else {
+            highlighterHorizontalPos = posPercent;
+            highlighterHorizontalPageNb = pageNb;
+        }
+
+    }
+
     public void convertPoints(String stringInput) {
         Gson gson = new Gson();
 
 
         int viewWidth = this.getWidth();
-        Log.d("viewWidth:", " " + viewWidth);
+        //Log.d("viewWidth:", " " + viewWidth);
 
         JsonParser parser = new JsonParser();
         JsonObject rootObj = parser.parse(stringInput).getAsJsonObject();
@@ -468,7 +493,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
             "topChange",
             event
          );
-        
+        this.sendCurrentViewState();
         //Log.e("ReactNative", gson.toJson(this.getTableOfContents()));
 
     }
@@ -527,6 +552,80 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
         }
     }
 
+
+    private double getHighlighterHorizontalPos() {
+
+        if (highlighterHorizontalPageNb == -1)
+            return 0;
+
+        float paddingY = 0;
+        try {
+            if (instance.isSwipeVertical()) {
+                paddingY = instance.getPageOffset(highlighterHorizontalPageNb, this.getZoom()) ;
+            } else {
+                paddingY = instance.getSecondaryPageOffset(highlighterHorizontalPageNb, this.getZoom());
+            }
+        }
+        catch (Exception e) {
+
+        }
+
+        double startY = instance.getPageSize(highlighterHorizontalPageNb).getHeight() * (highlighterHorizontalPos / 100.0f) ;
+
+        //double endX = this.pageWidths[pageNb] * (highlightLine.endX / 100.0f) + paddingX;
+        //double endY = this.pageHeights[pageNb] * (highlightLine.endY / 100.0f);
+
+
+        double offset = -instance.getCurrentYOffset();
+
+        double posY = paddingY - offset + (startY * this.getZoom());
+
+
+        return posY;
+        //Log.d("plop posy", " " + posY);
+          //      Toast.makeText(this.getContext(), String.valueOf(posY), Toast.LENGTH_LONG).show();
+    }
+
+    private double getHighlighterVerticalPos() {
+
+
+        if (highlighterVerticalPageNb == -1)
+            return 0;
+        float paddingX = 0;
+
+        try {
+            if (instance.isSwipeVertical()) {
+                paddingX = instance.getSecondaryPageOffset(highlighterVerticalPageNb, this.getZoom());
+
+            } else {
+                paddingX = instance.getPageOffset(highlighterVerticalPageNb, this.getZoom());
+
+            }
+        }
+        catch (Exception e) {
+
+        }
+
+
+        double startX = instance.getPageSize(highlighterVerticalPageNb).getWidth() * (highlighterVerticalPos / 100.0f);
+
+        //double endX = this.pageWidths[pageNb] * (highlightLine.endX / 100.0f) + paddingX;
+        //double endY = this.pageHeights[pageNb] * (highlightLine.endY / 100.0f);
+
+
+        double offset = -instance.getCurrentXOffset();
+
+
+
+        double posX = paddingX - offset + (startX * this.getZoom());
+
+
+        //Log.d("plop posy", " " + posY);
+        //Toast.makeText(this.getContext(), String.valueOf(posY), Toast.LENGTH_LONG).show();
+
+        return posX;
+    }
+
     @Override
     public boolean onTap(MotionEvent e){
 
@@ -535,10 +634,13 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
         //Constants.Pinch.MAXIMUM_ZOOM = this.maxScale;
 
         if (instance != null) {
+
+            //Toast.makeText(this.getContext(), String.valueOf(instance.toRealScale(-instance.getCurrentXOffset() + e.getX())), Toast.LENGTH_LONG);
             PdfAnnotation annotation = getAnnotationAtPos(e.getX(), e.getY());
 
+            //test(annotation.x, annotation.y, annotation.pageNb);
 
-            Log.d("plop onLongPress", " " + annotation.x + " " + annotation.y);
+            //Log.d("plop onLongPress", " " + annotation.x + " " + annotation.y + " pos:" + instance.toRealScale(-instance.getCurrentXOffset() + e.getX()) + "secondary offset:" + instance.getSecondaryPageOffset(1, 1));
 
             WritableMap event = Arguments.createMap();
 
@@ -857,13 +959,20 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
 
       //  this.loadComplete = false;
-        showLog(format("ploup drawPdf path:%s %s ", this.path, this.page));
+        //showLog(format("ploup drawPdf path:%s %s ", this.path, this.page));
 
 
         if (this.path != null){
 
-            if (this.savedViewState != null && this.path.equals(this.lastPath))
+            if (this.savedViewState != null && this.path.equals(this.lastPath)) {
                 this.setRestoredState(this.savedViewState);
+                this.lastPath = this.path;
+
+                if (pdfVersionToDraw == lastDrawnPdfVersion) {
+                    this.loadPages();
+                    return;
+                }
+            }
             this.lastPath = this.path;
             // set scale
             this.setMinZoom(this.minScale);
@@ -893,6 +1002,8 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                 .nightMode(this.enableDarkMode)
 		.linkHandler(this)
                 .load();
+
+                lastDrawnPdfVersion = pdfVersionToDraw;
 
         }
     }
@@ -1012,16 +1123,31 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
       //  if (this.lastLoadingTime + 2000 > new Date().getTime())
        //     return;
       //  showLog("ploup sendCurrentViewState plop" + this.loadComplete);
-        this.savedViewState = this.getCurrentViewState();
 
-        if (this.savedViewState == null)
+
+        int timeout = highlighterHorizontalPageNb != -1 || highlighterVerticalPageNb != -1 ? 500 : 100;
+
+        if (this.isWaitingForTimer)
             return;
-        WritableMap event = Arguments.createMap();
+        this.isWaitingForTimer = true;
 
-        event.putString("message", "positionChanged|"+this.savedViewState.currentPage+"|"+this.savedViewState.pageFocusX+"|"+this.savedViewState.pageFocusY+"|"+this.savedViewState.zoom + "|" + this.getPositionOffset()
-                + "|" + this.pageWidths[this.savedViewState.currentPage] + "|" + this.pageHeights[this.savedViewState.currentPage] + "|" + this.maxWidth + "|" + this.maxHeight);
+        final PdfView viewObject = this;
+        final Runnable runnable = new Runnable() {
+            public void run() {
 
-        ReactContext reactContext = (ReactContext)this.getContext();
+                viewObject.isWaitingForTimer = false;
+
+
+                try {
+                    viewObject.savedViewState = viewObject.getCurrentViewState();
+
+                    if (viewObject.savedViewState == null)
+                        return;
+                    WritableMap event = Arguments.createMap();
+                    event.putString("message", "positionChanged|" + viewObject.savedViewState.currentPage + "|" + viewObject.savedViewState.pageFocusX + "|" + viewObject.savedViewState.pageFocusY + "|" + viewObject.savedViewState.zoom + "|" + viewObject.getPositionOffset()
+                            + "|" + viewObject.pageWidths[viewObject.savedViewState.currentPage] + "|" + viewObject.pageHeights[viewObject.savedViewState.currentPage] + "|" + viewObject.maxWidth + "|" + viewObject.maxHeight + "|" + viewObject.getHighlighterHorizontalPos() + "|" + viewObject.getHighlighterVerticalPos());
+
+                    ReactContext reactContext = (ReactContext) viewObject.getContext();
 /*
         if (this.timerTask != null)
             this.timerTask.cancel();
@@ -1043,17 +1169,36 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
         Timer timer = new Timer("Timer");
 
         timer.schedule(this.timerTask, 500);*/
-        reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(
-                this.getId(),
-                "topChange",
-                event
-        );
+                    reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(
+                            viewObject.getId(),
+                            "topChange",
+                            event
+                    );
+                }
+                catch (Exception e) {
+                    Log.d("PdfView error", e.getMessage());
+                }
+
+
+            }
+        };
+
+        new android.os.Handler(Looper.getMainLooper()).postDelayed(
+                runnable,
+                timeout);
+
 
     }
 
-    public void restoreViewState(int currentPage, float pageFocusX, float pageFocusY, float zoom) {
-        showLog("ploup restoreViewState");
+    public void restoreViewState(int currentPage, float pageFocusX, float pageFocusY, float zoom, float highlighterVerticalPos, float highlighterHorizontalPos, int highlighterVerticalPageNb, int highlighterHorizontalPageNb, int pdfVersionToDraw) {
+        //showLog("ploup restoreViewState");
         this.savedViewState = new PdfViewState(currentPage, pageFocusX, pageFocusY, zoom);
+
+        this.highlighterVerticalPos = highlighterVerticalPos;
+        this.highlighterVerticalPageNb = highlighterVerticalPageNb;
+        this.highlighterHorizontalPos = highlighterHorizontalPos;
+        this.highlighterHorizontalPageNb = highlighterHorizontalPageNb;
+        this.pdfVersionToDraw = pdfVersionToDraw;
 
         this.setRestoredState(this.savedViewState);
     }
