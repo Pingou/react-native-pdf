@@ -87,11 +87,15 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 @end
 
 
-@implementation PDFImageAnnotation : PDFAnnotation { UIImage * _picture;
-                            CGRect _bounds;};
+@implementation PDFImageAnnotation : PDFAnnotation {
+    UIImage * _picture;
+    CGRect _bounds;
+    float _offsetY;
+    float _offsetX;
+};
 CGContextRef _context;
 
--(instancetype)initWithPicture:(nonnull UIImage *)picture bounds:(CGRect) bounds{
+-(instancetype)initWithPicture:(nonnull UIImage *)picture bounds:(CGRect) bounds offsetX:(float) offsetX offsetY:(float) offsetY {
     self = [super initWithBounds:bounds
                   forType:PDFAnnotationSubtypeWidget
                   withProperties:nil];
@@ -99,9 +103,12 @@ CGContextRef _context;
     if(self){
         _picture = picture;
         _bounds = bounds;
-        
+        _offsetX = offsetX;
+        _offsetY = offsetY;
         _context = nil;
     }
+    
+    
     return  self;
 }
 
@@ -118,13 +125,31 @@ CGContextRef _context;
           inContext:(CGContextRef)context {
     [super drawWithBox:box inContext:context];
     
-    UIGraphicsPushContext(context);
-    CGContextSaveGState(context);
     
-    [_picture drawInRect:_bounds];
+    
+   /*
+    
+     UIGraphicsPushContext(context);
+     CGContextSaveGState(context);
+     
+     [_picture drawInRect:_bounds];
 
-    CGContextRestoreGState(context);
-    UIGraphicsPopContext();
+     CGContextRestoreGState(context);
+     UIGraphicsPopContext();
+     */
+     
+     
+    
+    UIGraphicsPushContext(context);
+        CGContextSaveGState(context);
+
+        CGContextTranslateCTM(context, _bounds.origin.x - _offsetX, _bounds.origin.y + _bounds.size.height - _offsetY);
+        CGContextScaleCTM(context, 1.0, -1.0);
+        [_picture drawInRect:CGRectMake(0,0, _bounds.size.width - _offsetX, _bounds.size.height - _offsetY)];
+
+        //[_picture drawAtPoint:CGPointMake(0, 0)];
+        CGContextRestoreGState(context);
+        UIGraphicsPopContext();
     
     _context = context;
 }
@@ -155,6 +180,8 @@ CGContextRef _context;
     bool _hasSentPosInit;
     float _lastZoomLevel;
 }
+
+
 
 - (instancetype)init
 {
@@ -228,6 +255,17 @@ CGContextRef _context;
     }
     
     return self;
+}
+
+- (UIImage *)imageWithImage:(UIImage *)image scaledToSize:(CGSize)newSize {
+    //UIGraphicsBeginImageContext(newSize);
+    // In next line, pass 0.0 to use the current device's pixel scaling factor (and thus account for Retina resolution).
+    // Pass 1.0 to force exact pixel size.
+    UIGraphicsBeginImageContextWithOptions(newSize, NO, 0.0);
+    [image drawInRect:CGRectMake(0, 0, newSize.width, newSize.height)];
+    UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return newImage;
 }
 
 - (void)didSetProps:(NSArray<NSString *> *)changedProps
@@ -500,9 +538,12 @@ CGContextRef _context;
                         
                         float x = 0;
                         float y = 0;
+                        
                         if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
-                           x = (pdfPageRect.size.width * (100 - yPerc) / 100) - (pdfPageRect.size.height - pdfPageRect.size.width);
-                           y = (pdfPageRect.size.height * xPerc / 100);
+                          // x = (pdfPageRect.size.width * (100 - yPerc) / 100) - (pdfPageRect.size.height - pdfPageRect.size.width);
+                         //  y = (pdfPageRect.size.height * xPerc / 100);
+                            x = (pdfPageRect.size.width * (100 - yPerc) / 100);
+                            y = (pdfPageRect.size.height * xPerc / 100);
                         }
                         else {
                             x = pdfPageRect.size.width - (pdfPageRect.size.width * xPerc / 100);
@@ -521,12 +562,12 @@ CGContextRef _context;
                         float height = 200;
                         
                         CGRect targetRect;
-                      /*  if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
-                            targetRect = CGRectMake(y - (height - 10), x - 5, width, height);
+                        if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
+                            targetRect = CGRectMake(x, y - 5, width, height);
                         }
-                        else {*/
+                        else {
                             targetRect = CGRectMake( x - 5, y - (height - 10), width, height);
-                       // }
+                       }
                         
                         float baseWidth = 1000;
                         float currentWidth = fmin(pdfPageRect.size.width,pdfPageRect.size.height);
@@ -604,6 +645,8 @@ CGContextRef _context;
                          */
                         float width;
                         float height;
+                        float offsetX;
+                        float offsetY;
                         if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
                             startX = (pdfPageRect.size.width * (yPercStart) / 100);
                             startY = (pdfPageRect.size.height * (xPercEnd) / 100);
@@ -614,16 +657,20 @@ CGContextRef _context;
                             
                             width = endX - startX;
                             height = startY - endY;
+                            offsetX = pdfPageRect.origin.y;
+                            offsetY = pdfPageRect.origin.x;
                         }
                         else {
                             startX = (pdfPageRect.size.width * xPercStart / 100);
-                            startY = pdfPageRect.size.height - (pdfPageRect.size.height * yPercStart / 100);
+                            startY = (pdfPageRect.size.height) - (pdfPageRect.size.height * (yPercStart/ 100));
                                                         
                             endX = pdfPageRect.size.width * xPercEnd / 100;
-                            endY = pdfPageRect.size.height - (pdfPageRect.size.height * yPercEnd / 100);
+                            endY = (pdfPageRect.size.height) - ((pdfPageRect.size.height) * (yPercEnd / 100));
                             
                             width = endX - startX;
                             height = startY - endY;
+                            offsetX = pdfPageRect.origin.x;
+                            offsetY = pdfPageRect.origin.y;
                         }
                        
                        
@@ -633,7 +680,7 @@ CGContextRef _context;
                             targetRect = CGRectMake(y - (height - 10), x - 5, width, height);
                         }
                         else {*/
-                            targetRect = CGRectMake( startX, endY, width, height);
+                            targetRect = CGRectMake( startX, endY, width + offsetX, height + offsetY);
                        // }
                         
                        
@@ -642,16 +689,22 @@ CGContextRef _context;
                         if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
                             image = [UIImage imageWithCGImage:image.CGImage
                                                                     scale:image.scale
-                                                              orientation:UIImageOrientationLeftMirrored];
+                                                              orientation:UIImageOrientationLeft];
                         }
                         else {
-                            image = [UIImage imageWithCGImage:image.CGImage
-                                                                    scale:image.scale
-                                                              orientation:UIImageOrientationDownMirrored];
+                            //image = [UIImage imageWithCGImage:image.CGImage
+                            //                                        scale:image.scale
+                              //                                orientation:UIImageOrientationDownMirrored];
                         }
+                       // float ratio = width / image.size.width;
+                       // float newHeight = image.size.height * ratio;
+                        
+                        //image = [self imageWithImage:image scaledToSize:CGSizeMake(round(width), round(height))];
+                        //targetRect = CGRectMake( startX, endY, round(width), round(height + 8));
+                       
                         PDFPage *annotationPage = [_pdfDocument pageAtIndex:pageNb];
-                        PDFImageAnnotation* annotation = [[PDFImageAnnotation alloc] initWithPicture:image bounds:targetRect];
-                    
+                        PDFImageAnnotation* annotation = [[PDFImageAnnotation alloc] initWithPicture:image bounds:targetRect offsetX:offsetX offsetY:offsetY];
+                        annotation.backgroundColor = UIColor.redColor;
                          annotation.color = [UIColor colorWithRed:213.0/255.0 green:41.0/255.0 blue:65.0/255.0 alpha:0];
                                                 // annotation.iconType = kPDFTextAnnotationIconNote;
                         [annotationPage addAnnotation:annotation];
@@ -687,7 +740,10 @@ CGContextRef _context;
                         float startX = 0;
                         float startY = 0;
                         if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
-                            startX = (pdfPageRect.size.width * (100 - startYPerc) / 100) - (pdfPageRect.size.height - pdfPageRect.size.width);
+                           // startX = (pdfPageRect.size.width * (100 - startYPerc) / 100) - (pdfPageRect.size.height - pdfPageRect.size.width);
+                           // startY = (pdfPageRect.size.height * startXPerc / 100);
+                            
+                            startX = (pdfPageRect.size.width * (100 - startYPerc) / 100);
                             startY = (pdfPageRect.size.height * startXPerc / 100);
                         }
                         else {
@@ -704,7 +760,11 @@ CGContextRef _context;
                         float endX = 0;
                         float endY = 0;
                         if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
-                            endX = (pdfPageRect.size.width * (100 - endYPerc) / 100) - (pdfPageRect.size.height - pdfPageRect.size.width);
+                          //  endX = (pdfPageRect.size.width * (100 - endYPerc) / 100) - (pdfPageRect.size.height - pdfPageRect.size.width);
+                           // endY = (pdfPageRect.size.height * endXPerc / 100);
+                            
+                            
+                            endX = (pdfPageRect.size.width * (100 - endYPerc) / 100);
                             endY = (pdfPageRect.size.height * endXPerc / 100);
                         }
                         else {
@@ -724,7 +784,21 @@ CGContextRef _context;
                         }
                         else
                             startY = startY - (size / 2);
-                        PDFAnnotation* annotation = [[PDFAnnotation alloc] initWithBounds:CGRectMake(startX, startY, width, height) forType:PDFAnnotationSubtypeHighlight withProperties:nil];
+                        
+                        
+                        CGRect targetRect;
+                        if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
+                            if (isVertical == 1)
+                                targetRect = CGRectMake(startX, startY - (size / 2), endX - startX, width);
+                            else
+                                targetRect = CGRectMake(startX - (size / 2), startY, size, endY - startY);
+                        }
+                        else {
+                            targetRect = CGRectMake( startX, startY, width, height);
+                       }
+                        
+                        
+                        PDFAnnotation* annotation = [[PDFAnnotation alloc] initWithBounds:targetRect forType:PDFAnnotationSubtypeHighlight withProperties:nil];
                         annotation.color = [self getUIColorObjectFromHexString:color alpha:0.5];
                         [annotationPage addAnnotation:annotation];
                         
@@ -1191,18 +1265,28 @@ CGContextRef _context;
     float y = 0;
     
     if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
-       x = (pdfPageRect.size.width * (100 - 50) / 100) - (pdfPageRect.size.height - pdfPageRect.size.width);
-       y = (pdfPageRect.size.height * _horizontalHighlightPosPercent / 100);
+       y = 10;
+        x = ((pdfPageRect.size.width * _horizontalHighlightPosPercent / 100) - pdfPageRect.origin.x);
+        
+        //CGRect targetRect = CGRectMake( x, y, 100, 100);
+        //CGPoint tmpP = CGPointMake(y,  x);
+        //CGPoint newPoint = [_pdfView convertPoint:tmpP fromPage:pdfPage];
+        
+       // NSLog(@"newPoint: %f, currentPage %i, highlightPage %i", newPoint.y, currentPageNb, _horizontalHighlightPosPageNb);
+        
+        
+        //return newPoint.y;
     }
     else {
-        x = pdfPageRect.size.width - (pdfPageRect.size.width * 50 / 100);
-        y = pdfPageRect.size.height - (pdfPageRect.size.height * _horizontalHighlightPosPercent / 100);
+        x = 100;
+        y = pdfPageRect.size.height - ((pdfPageRect.size.height * _horizontalHighlightPosPercent / 100) - pdfPageRect.origin.y);
     }
     
-    CGRect targetRect = CGRectMake( x - 5, y, 100, 100);
+    
+   // CGRect targetRect = CGRectMake( x - 5, y, 100, 100);
 
     
-    CGPoint tmpP = CGPointMake(100,  targetRect.origin.y);
+    CGPoint tmpP = CGPointMake(x,  y);
     CGPoint newPoint = [_pdfView convertPoint:tmpP fromPage:pdfPage];
     
    // NSLog(@"newPoint: %f, currentPage %i, highlightPage %i", newPoint.y, currentPageNb, _horizontalHighlightPosPageNb);
@@ -1226,18 +1310,18 @@ CGContextRef _context;
     float y = 0;
 
     if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
-       x = (pdfPageRect.size.width * (_verticalHighlightPosPercent) / 100) - (pdfPageRect.size.height - pdfPageRect.size.width);
-       y = (pdfPageRect.size.height * 50 / 100);
+       y = (pdfPageRect.size.height * (_verticalHighlightPosPercent) / 100);
+       x = (pdfPageRect.size.height * 50 / 100);
     }
     else {
         x = pdfPageRect.size.width * _verticalHighlightPosPercent / 100;
         y = pdfPageRect.size.height - (pdfPageRect.size.height * 50 / 100);
     }
     
-    CGRect targetRect = CGRectMake(x, y, 10, 10);
+    //CGRect targetRect = CGRectMake(x, y, 10, 10);
 
     
-    CGPoint tmpP = CGPointMake(targetRect.origin.x,  10);
+    CGPoint tmpP = CGPointMake(x,  y);
     CGPoint newPoint = [_pdfView convertPoint:tmpP fromPage:pdfPage];
     
     NSLog(@"newPoint: %f, currentPage %i, highlightPageNb %i _verticalHighlightPosPageNb %f", newPoint.x, currentPageNb, _verticalHighlightPosPageNb, _verticalHighlightPosPercent);
@@ -1391,7 +1475,7 @@ CGContextRef _context;
         float y;
         
         x = (pdfPageRect.size.width - point.x) / pdfPageRect.size.width * 100;
-                   y = (pdfPageRect.size.height - point.y) / pdfPageRect.size.height * 100;
+                   y = (pdfPageRect.size.height + pdfPageRect.origin.y - point.y) / (pdfPageRect.size.height)  * 100;
         x = 100 - x;
         if (pdfPage.rotation == 90 || pdfPage.rotation == 270)
         {
