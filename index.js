@@ -471,7 +471,7 @@ export default class Pdf extends Component {
                     this.props.onLongClick && this.props.onLongClick(Number(message[1]), Number(message[2]), Number(message[3]), canAddAnnotation);
                 }
                  else if (message[0] === 'simpleClick') {
-                    this.props.onSimpleClick && this.props.onSimpleClick(Number(message[1]), Number(message[2]), Number(message[3]));
+                    this.props.onSimpleClick && this.props.onSimpleClick(Number(message[1]), Number(message[2]), Number(message[3]), Number(message[4]));
                 }
 
                 else if (message[0] === 'annotationClicked') {

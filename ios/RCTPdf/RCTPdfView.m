@@ -545,6 +545,10 @@ CGContextRef _context;
                             x = (pdfPageRect.size.width * (100 - yPerc) / 100);
                             y = (pdfPageRect.size.height * xPerc / 100);
                         }
+                        /*else if (pdfPage.rotation == 270) {
+                            x = (pdfPageRect.size.width * (100 - yPerc) / 100);
+                            y = (pdfPageRect.size.height * xPerc / 100);
+                        }*/
                         else {
                             x = pdfPageRect.size.width - (pdfPageRect.size.width * xPerc / 100);
                             y = pdfPageRect.size.height - (pdfPageRect.size.height * yPerc / 100);
@@ -561,9 +565,16 @@ CGContextRef _context;
                         }
                         float height = 200;
                         
+                        
+                        
                         CGRect targetRect;
-                        if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
+                        if (pdfPage.rotation == 90) {
                             targetRect = CGRectMake(x, y - 5, width, height);
+                        }
+                        else if (pdfPage.rotation == 270) {
+                            width = 150;
+                            height = 40;
+                            targetRect = CGRectMake(x - height, y - width, height, width);
                         }
                         else {
                             targetRect = CGRectMake( x - 5, y - (height - 10), width, height);
@@ -647,7 +658,34 @@ CGContextRef _context;
                         float height;
                         float offsetX;
                         float offsetY;
-                        if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
+                        
+                        
+                        if (pdfPage.rotation == 90) {
+                            float tmp = xPercStart;
+                            xPercStart = yPercStart;
+                            yPercStart = 100 - tmp;
+                            tmp = xPercEnd;
+                            xPercEnd = yPercEnd;
+                            yPercEnd = 100 - tmp;
+                            
+                            tmp = yPercStart;
+                            yPercStart = yPercEnd;
+                            yPercEnd = tmp;
+                        }
+                        else if (pdfPage.rotation == 270) {
+                            float tmp = xPercStart;
+                            xPercStart = 100 - yPercStart;
+                            yPercStart = tmp;
+                            tmp = xPercEnd;
+                            xPercEnd = 100 - yPercEnd;
+                            yPercEnd = tmp;
+                            
+                            tmp = xPercStart;
+                            xPercStart = xPercEnd;
+                            xPercEnd = tmp;
+                            
+                        }
+                 /*       if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
                             startX = (pdfPageRect.size.width * (yPercStart) / 100);
                             startY = (pdfPageRect.size.height * (xPercEnd) / 100);
                             
@@ -655,12 +693,23 @@ CGContextRef _context;
                             endX = (pdfPageRect.size.width * (yPercEnd) / 100);
                             endY = (pdfPageRect.size.height * (xPercStart) / 100);
                             
-                            width = endX - startX;
-                            height = startY - endY;
+                            
+                            if (pdfPage.rotation == 90) {
+                                width = endX - startX;
+                                height = startY - endY;
+                            }
+                            else {
+                                width = startX - endX;
+                                height = endY - startY;
+                                startX = startX - width;
+                                endX = endX - width;
+                                startY = startY - height;
+                                endY = endY - height;
+                            }
                             offsetX = pdfPageRect.origin.y;
                             offsetY = pdfPageRect.origin.x;
                         }
-                        else {
+                        else {*/
                             startX = (pdfPageRect.size.width * xPercStart / 100);
                             startY = (pdfPageRect.size.height) - (pdfPageRect.size.height * (yPercStart/ 100));
                                                         
@@ -671,7 +720,7 @@ CGContextRef _context;
                             height = startY - endY;
                             offsetX = pdfPageRect.origin.x;
                             offsetY = pdfPageRect.origin.y;
-                        }
+                       // }
                        
                        
                         
@@ -686,10 +735,15 @@ CGContextRef _context;
                        
                         UIImage *image = [UIImage imageWithContentsOfFile:path];
                         
-                        if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
+                        if (pdfPage.rotation == 90) {
                             image = [UIImage imageWithCGImage:image.CGImage
                                                                     scale:image.scale
                                                               orientation:UIImageOrientationLeft];
+                        }
+                        else if (pdfPage.rotation == 270) {
+                            image = [UIImage imageWithCGImage:image.CGImage
+                                                                    scale:image.scale
+                                                              orientation:UIImageOrientationRight];
                         }
                         else {
                             //image = [UIImage imageWithCGImage:image.CGImage
@@ -1103,7 +1157,7 @@ CGContextRef _context;
         
         point = [_pdfView convertPoint:point toPage:pdfPage];
         
-        BOOL canEdit = [_pdfDocument allowsCommenting];
+        //BOOL canEdit = [_pdfDocument allowsCommenting];
       
         CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxMediaBox];
         
@@ -1124,7 +1178,7 @@ CGContextRef _context;
         }
         
         //if (canEdit) {
-            _onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"simpleClick|%f|%f|%lu|%d", x, y, page, canEdit ? 1 : 0]]});
+            _onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"simpleClick|%f|%f|%lu|%d", x, y, page, pdfPage.rotation]]});
     //    }
     }
     
@@ -1165,13 +1219,56 @@ CGContextRef _context;
 	if (pdfPage) {
 		unsigned long page = [_pdfDocument indexForPage:pdfPage];
 		
-		point = [_pdfView convertPoint:point toPage:pdfPage];
+		//point = [_pdfView convertPoint:point toPage:pdfPage];
 		
 		
 		CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxMediaBox];
 		
-		
+        
+        /*
+        CGPoint pointOnPage = [_pdfView convertPoint:point toPage:pdfPage];
+
+            for (PDFAnnotation *annotation in pdfPage.annotations) {
+               
+                if (pointOnPage.x >= annotation.bounds.origin.x && pointOnPage.x <= annotation.bounds.origin.x + annotation.bounds.size.width
+                    && pointOnPage.y >= annotation.bounds.origin.y && pointOnPage.y <= annotation.bounds.origin.y + annotation.bounds.size.height)
+                {
+                    NSLog(@"Annotation hit: %@", annotation);
+                }
+            }*/
+        
+        CGPoint convertedPoint = [self convertPointToPercent:point pdfPage:pdfPage];
+       
+        float annotationWidthMargin = 0.0;
+        float annotationHeightMargin = 0.0;
+        if (pdfPage.rotation == 90) {
+            convertedPoint.y = 100 - convertedPoint.y;
+            annotationWidthMargin = (7 / _lastZoomLevel);
+        }
+        else if (pdfPage.rotation == 270) {
+            convertedPoint.x = 100 - convertedPoint.x;
+            annotationWidthMargin = (7 / _lastZoomLevel);
+        }
+        else {
+            convertedPoint.x = 100 - convertedPoint.x;
+            annotationHeightMargin = (7 / _lastZoomLevel);
+            annotationWidthMargin = (5 / _lastZoomLevel);
+        }
+        /*{
+            float tmp = convertedPoint.x;
+            convertedPoint.x = convertedPoint.y;
+            convertedPoint.y = tmp;
+        }*/
+        NSLog(@"convertedPoint: %f %f",convertedPoint.x, convertedPoint.y);
 		if (_annotations && [_annotations count] > 0) {
+            
+            
+            /*if (pdfPage.rotation == 90)//  || pdfPage.rotation == 270)
+            {
+                point.x = pdfPageRect.size.height - point.x;
+                point.y = pdfPageRect.size.width - point.y;
+            }*/
+            
 			for (id object in _annotations) {
 		
 				long pageNb = [[object objectForKey:@"pageNb"] integerValue];
@@ -1182,14 +1279,21 @@ CGContextRef _context;
 				float xPerc = [[object objectForKey:@"x"] floatValue];
 				float yPerc = [[object objectForKey:@"y"] floatValue];
 				
-				float x = pdfPageRect.size.width - (pdfPageRect.size.width * xPerc / 100);
-				float y = pdfPageRect.size.height - (pdfPageRect.size.height * yPerc / 100);
+				//float x = pdfPageRect.size.width - (pdfPageRect.size.width * xPerc / 100);
+				//float y = pdfPageRect.size.height - (pdfPageRect.size.height * yPerc / 100);
 				
-				NSString *uniqueIdOnClient = [object objectForKey:@"uniqueIdOnClient"];
 				
-				if (pageNb == page && x > point.x - 20 && x < point.x + 20
-					&& y > point.y - 20 && y < point.y + 20)
+				
+				//if (pageNb == page && x > point.x - 20 && x < point.x + 20
+				//	&& y > point.y - 20 && y < point.y + 20)
+                
+                
+                float allowedMargin = (3 / _lastZoomLevel);
+                //float annotationWidthMargin = (5 / _lastZoomLevel);
+                if (pageNb == page && xPerc > convertedPoint.x - allowedMargin && xPerc < convertedPoint.x + allowedMargin + annotationWidthMargin
+                    && yPerc > convertedPoint.y - allowedMargin - (annotationHeightMargin / 2) && yPerc < convertedPoint.y + allowedMargin + (annotationHeightMargin / 2))
 				{
+                    NSString *uniqueIdOnClient = [object objectForKey:@"uniqueIdOnClient"];
 					_onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"annotationClicked|%@|12", uniqueIdOnClient]]});
 					return YES;
 					
@@ -1264,7 +1368,7 @@ CGContextRef _context;
     float x = 0;
     float y = 0;
     
-    if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
+    if (pdfPage.rotation == 90) {
        y = 10;
         x = ((pdfPageRect.size.width * _horizontalHighlightPosPercent / 100) - pdfPageRect.origin.x);
         
@@ -1276,6 +1380,10 @@ CGContextRef _context;
         
         
         //return newPoint.y;
+    }
+    else if (pdfPage.rotation == 270) {
+        y = 10;
+        x = pdfPageRect.size.width - ((pdfPageRect.size.width * _horizontalHighlightPosPercent / 100) - pdfPageRect.origin.x);
     }
     else {
         x = 100;
@@ -1309,9 +1417,13 @@ CGContextRef _context;
     float x = 0;
     float y = 0;
 
-    if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
+    if (pdfPage.rotation == 90) {
        y = (pdfPageRect.size.height * (_verticalHighlightPosPercent) / 100);
        x = (pdfPageRect.size.height * 50 / 100);
+    }
+    else if (pdfPage.rotation == 270) {
+        y = pdfPageRect.size.height - (pdfPageRect.size.height * (_verticalHighlightPosPercent) / 100);
+        x = (pdfPageRect.size.height * 50 / 100);
     }
     else {
         x = pdfPageRect.size.width * _verticalHighlightPosPercent / 100;
@@ -1477,10 +1589,16 @@ CGContextRef _context;
         x = (pdfPageRect.size.width - point.x) / pdfPageRect.size.width * 100;
                    y = (pdfPageRect.size.height + pdfPageRect.origin.y - point.y) / (pdfPageRect.size.height)  * 100;
         x = 100 - x;
-        if (pdfPage.rotation == 90 || pdfPage.rotation == 270)
+        if (pdfPage.rotation == 90)
         {
             float tmp = x;
             x = 100 - y;
+            y = tmp;
+            
+        }
+        else if (pdfPage.rotation == 270) {
+            float tmp = 100 - x;
+            x = y;
             y = tmp;
         }
         
