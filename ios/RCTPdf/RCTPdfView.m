@@ -888,7 +888,7 @@ CGContextRef _context;
         if (!_hasSentPosInit || zoomFromRestoreViewState != _lastZoomLevel) {
             _hasSentPosInit = true;
             _lastZoomLevel = zoomFromRestoreViewState;
-            [self sendNewPosition];
+            [self didMove];
         }
     }
 }
