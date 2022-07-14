@@ -9,11 +9,11 @@
 'use strict';
 import React, {Component} from 'react';
 import PropTypes from 'prop-types';
+import { ViewPropTypes } from 'deprecated-react-native-prop-types'; 
 import {
     View,
     StyleSheet,
     PanResponder,
-    ViewPropTypes,
 } from 'react-native';
 
 export default class PinchZoomView extends Component {

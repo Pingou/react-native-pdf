@@ -9,6 +9,7 @@
 'use strict';
 import React, {Component} from 'react';
 import PropTypes from 'prop-types';
+import { ViewPropTypes } from 'deprecated-react-native-prop-types'; 
 import {
     requireNativeComponent,
     NativeModules,
@@ -16,7 +17,6 @@ import {
     Platform,
     ProgressBarAndroid,
     ProgressViewIOS,
-    ViewPropTypes,
     StyleSheet
 } from 'react-native';
 

@@ -10,8 +10,8 @@
 'use strict';
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
+import { ViewPropTypes } from 'deprecated-react-native-prop-types'; 
 import {
-    ViewPropTypes,
     requireNativeComponent,
 } from 'react-native';
 

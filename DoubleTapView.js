@@ -11,8 +11,8 @@ import React, {Component} from 'react';
 import {
     View,
     PanResponder,
-    ViewPropTypes,
 } from 'react-native';
+import { ViewPropTypes } from 'deprecated-react-native-prop-types'; 
 import PropTypes from 'prop-types';
 
 export default class DoubleTapView extends Component {
