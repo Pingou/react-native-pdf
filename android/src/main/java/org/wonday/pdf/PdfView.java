@@ -961,8 +961,9 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
       //  this.loadComplete = false;
         //showLog(format("ploup drawPdf path:%s %s ", this.path, this.page));
 
-
-        if (this.path != null){
+        
+        Activity currentActivity = this.context.getCurrentActivity();
+        if (this.path != null && currentActivity != null && !currentActivity.isDestroyed()){
 
             if (this.savedViewState != null && this.path.equals(this.lastPath)) {
                 this.setRestoredState(this.savedViewState);
