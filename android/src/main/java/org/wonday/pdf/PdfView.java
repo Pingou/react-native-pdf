@@ -10,6 +10,7 @@ package org.wonday.pdf;
 
 import java.io.File;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
