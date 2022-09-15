@@ -17,7 +17,8 @@ import {
     Platform,
     ProgressBarAndroid,
     ProgressViewIOS,
-    StyleSheet
+    StyleSheet,
+    Dimensions
 } from 'react-native';
 
 import RNFetchBlob from 'rn-fetch-blob';
@@ -66,7 +67,7 @@ export default class Pdf extends Component {
         onAnnotationClicked:  PropTypes.func,
         onLongClick:  PropTypes.func,
         restoreViewState: PropTypes.string,
-	onPressLink: PropTypes.func,
+    onPressLink: PropTypes.func,
         // Props that are not available in the earlier react native version, added to prevent crashed on android
         accessibilityLabel: PropTypes.string,
         importantForAccessibility: PropTypes.string,
@@ -126,7 +127,7 @@ export default class Pdf extends Component {
         },
         onSimpleClick: (x, y, page) => {
         },
-	onPressLink: (url) => {
+    onPressLink: (url) => {
         },
     };
 
@@ -479,7 +480,7 @@ export default class Pdf extends Component {
                    // alert(1)
                     this.props.onAnnotationClicked && this.props.onAnnotationClicked(message[1]);
                 }
-		 else if (message[0] === 'linkPressed') {
+         else if (message[0] === 'linkPressed') {
                 this.props.onPressLink && this.props.onPressLink(message[1]);
             }
 
@@ -499,9 +500,38 @@ export default class Pdf extends Component {
 
     render() {
 
+
+        var style
+        var translationStyle = {}
+
+        if (this.props.rotated && this.props.myViewWidth > 0) {
+
+         var viewWidth = this.props.myViewWidth
+         var viewHeight = this.props.myViewHeight
+
+
+            style = [{width: viewWidth , height: viewHeight, margin: 0, padding:0
+          , overflow: 'hidden'}]
+
+          translationStyle = { width: viewHeight , height: viewWidth, transform: [
+          
+          { rotate: "90deg" },
+
+          { translateY: ((viewHeight / 2) - (viewWidth / 2))  },
+          { translateX: ((viewHeight / 2) - (viewWidth / 2))  },
+
+
+          ]}
+        }
+        else {
+        //attention ne pas mettre flex 1 ici ou dessous ca fout la merde quand on tourne
+            style = [this.props.style,{overflow: 'hidden'}]
+        }
+
+
         if (Platform.OS === "android" || Platform.OS === "ios") {
                 return (
-                    <View style={[this.props.style,{overflow: 'hidden'}]}>
+                    <View style={style}>
                         {!this.state.isDownloaded?
                             (<View
                                 style={styles.progressContainer}
@@ -526,7 +556,7 @@ export default class Pdf extends Component {
                                         <PdfCustom
                                             ref={component => (this._root = component)}
                                             {...this.props}
-                                            style={[{flex:1,backgroundColor: '#EEE'}, this.props.style]}
+                                            style={[{backgroundColor: '#EEE',overflow: 'hidden'}, style, translationStyle]}
                                             path={this.state.path}
                                             onChange={this._onChange}
                                         />
@@ -535,20 +565,20 @@ export default class Pdf extends Component {
                                                 <PdfCustom
                                                     ref={component => (this._root = component)}
                                                     {...this.props}
-                                                    style={[{backgroundColor: '#EEE',overflow: 'hidden'}, this.props.style]}
+                                                    style={[{backgroundColor: '#EEE',overflow: 'hidden'}, style, translationStyle]}
                                                     path={this.state.path}
                                                     onChange={this._onChange}
                                                 />
                                             ):(<PdfView
                                                 {...this.props}
-                                                style={[{backgroundColor: '#EEE',overflow: 'hidden'}, this.props.style]}
+                                                style={[{backgroundColor: '#EEE',overflow: 'hidden'}, style, translationStyle]}
                                                 path={this.state.path}
                                                 onLoadComplete={this.props.onLoadComplete}
                                                 onPageChanged={this.props.onPageChanged}
                                                 onError={this._onError}
                                                 onPageSingleTap={this.props.onPageSingleTap}
                                                 onScaleChanged={this.props.onScaleChanged}
-						onPressLink={this.props.onPressLink}
+                        onPressLink={this.props.onPressLink}
                                             />)
                                     )
                                 )}
