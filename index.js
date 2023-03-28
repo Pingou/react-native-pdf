@@ -42,6 +42,7 @@ export default class Pdf extends Component {
             // Opaque type returned by require('./test.pdf')
             PropTypes.number,
         ]).isRequired,
+        singlePage: PropTypes.bool,
         page: PropTypes.number,
         scale: PropTypes.number,
         minScale: PropTypes.number,
@@ -57,6 +58,7 @@ export default class Pdf extends Component {
         enablePaging: PropTypes.bool,
         enableRTL: PropTypes.bool,
         fitPolicy: PropTypes.number,
+	
         onLoadComplete: PropTypes.func,
         onPageChanged: PropTypes.func,
         onError: PropTypes.func,
@@ -78,8 +80,12 @@ export default class Pdf extends Component {
         accessibilityComponentType: PropTypes.string,
         annotations: PropTypes.array,
         highlightLines: PropTypes.array,
+        chartStart: PropTypes.string,
+        chartEnd: PropTypes.string,
+        showPagesNav: PropTypes.bool,
         enableDarkMode: PropTypes.bool,
         drawings: PropTypes.array,
+        chartHighlights: PropTypes.array,
     };
 
     static defaultProps = {
@@ -90,6 +96,7 @@ export default class Pdf extends Component {
         spacing: 10,
         fitPolicy: 2, //fit both
         horizontal: false,
+        singlePage: false,
         page: 1,
         enableAntialiasing: true,
         enableAnnotationRendering: true,
@@ -101,6 +108,11 @@ export default class Pdf extends Component {
         annotations: [],
         drawings: [],
         highlightLines: [],
+        chartHighlights: [],
+        chartStart: "",
+        chartEnd: "",
+        showPagesNav: false,
+        chartHighlights: [],
         onLoadProgress: (percent) => {
         },
         onLoadComplete: (numberOfPages, path, dims, annotationsDisabled) => {
@@ -109,7 +121,7 @@ export default class Pdf extends Component {
         },
         onError: (error) => {
         },
-        onPageSingleTap: (x, y, page) => {
+        onPageSingleTap: (page, x, y) => {
         },
         onScaleChanged: (scale) => {
         },
@@ -459,7 +471,7 @@ export default class Pdf extends Component {
                 } else if (message[0] === 'error') {
                     this._onError(new Error(message[1]));
                 } else if (message[0] === 'pageSingleTap') {
-                    this.props.onPageSingleTap && this.props.onPageSingleTap(message[1]);
+                    this.props.onPageSingleTap && this.props.onPageSingleTap(Number(message[1]), Number(message[2]), Number(message[3]));
                 } else if (message[0] === 'scaleChanged') {
                     this.props.onScaleChanged && this.props.onScaleChanged(message[1]);
                 }
@@ -471,6 +483,10 @@ export default class Pdf extends Component {
                     }
                     this.props.onLongClick && this.props.onLongClick(Number(message[1]), Number(message[2]), Number(message[3]), canAddAnnotation);
                 }
+                else if (message[0] === 'onSwitchPage') {
+                    this.props.onSwitchPage && this.props.onSwitchPage(Number(message[1]));
+                }
+                
                  else if (message[0] === 'simpleClick') {
                     this.props.onSimpleClick && this.props.onSimpleClick(Number(message[1]), Number(message[2]), Number(message[3]), Number(message[4]));
                 }

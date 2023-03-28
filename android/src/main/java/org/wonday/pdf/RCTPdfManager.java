@@ -191,6 +191,47 @@ public class RCTPdfManager extends SimpleViewManager<PdfView> {
         pdfView.setFitPolicy(fitPolicy);
     }
 
+    @ReactProp(name = "singlePage")
+    public void setSinglePage(PdfView pdfView, boolean value) {
+        pdfView.setIsSinglePage(value);
+    }
+
+    @ReactProp(name = "chartStart")
+    public void setChartStart(PdfView pdfView, String values) {
+        if (values != null && !values.isEmpty()) {
+            String[] valuesTab = values.split("\\|");
+            pdfView.chartStart = new PdfView.PdfAnnotation(Float.valueOf(valuesTab[0]), Float.valueOf(valuesTab[1]), 0);
+        }
+    }
+
+    @ReactProp(name = "chartEnd")
+    public void setChartEnd(PdfView pdfView, String values) {
+        if (values != null && !values.isEmpty()) {
+            String[] valuesTab = values.split("\\|");
+            pdfView.chartEnd = new PdfView.PdfAnnotation(Float.valueOf(valuesTab[0]), Float.valueOf(valuesTab[1]), 0);
+        }
+    }
+
+    @ReactProp(name = "chartHighlights")
+    public void setChartHighlights(PdfView pdfView, ReadableArray chartHighlights) {
+
+        List<PdfView.PdfHighlightLine> newList = new ArrayList<>();
+        if (chartHighlights != null) {
+
+
+
+            for (int i = 0; i < chartHighlights.size(); i++) {
+                ReadableMap obj = chartHighlights.getMap(i);
+
+                PdfView.PdfHighlightLine newChartHighlight = new PdfView.PdfHighlightLine(obj.getDouble("startX"), obj.getDouble("startY"), obj.getDouble("endX"), obj.getDouble("endY"),
+                        0, 0, 0, obj.getString("color"));
+                newList.add(newChartHighlight);
+            }
+        }
+        pdfView.setChartHighlights(newList);
+
+    }
+
     @ReactProp(name = "restoreViewState")
     public void restoreViewState(PdfView pdfView, String values) {
         Log.d("PdfView", "ploup calling restoreViewState");

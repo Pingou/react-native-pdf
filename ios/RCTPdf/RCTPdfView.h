@@ -38,6 +38,11 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface RCTPdfView : UIView <UIGestureRecognizer
 @property(nonatomic) NSArray *annotations;
 @property(nonatomic) NSArray *drawings;
 @property(nonatomic) NSArray *highlightLines;
+@property(nonatomic) NSString *chartStart;
+@property(nonatomic) NSString *chartEnd;
+@property(nonatomic) NSArray *chartHighlights;
+@property(nonatomic) BOOL showPagesNav;
+@property(nonatomic) BOOL singlePage;
 @property(nonatomic) BOOL enableDarkMode;
 @property(nonatomic, copy) RCTBubblingEventBlock onChange;
 

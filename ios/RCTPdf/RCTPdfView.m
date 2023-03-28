@@ -86,6 +86,17 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 
 @end
 
+@interface ClickableZone : NSObject
+    @property(strong) NSString *action;
+    @property (nonatomic, assign) CGRect bounds;
+@end
+
+
+@implementation ClickableZone {
+
+};
+@end
+
 
 @implementation PDFImageAnnotation : PDFAnnotation {
     UIImage * _picture;
@@ -172,6 +183,9 @@ CGContextRef _context;
     int _isLandscape;
     NSMutableArray<PDFAnnotation *> *_annotationsAdded;
     NSMutableArray<PDFImageAnnotation *> *_drawingsAdded;
+    NSMutableArray<PDFAnnotation *> *_chartHighlightsAdded;
+    NSMutableArray<PDFAnnotation *> *_editChartHighlightsAdded;
+    NSMutableArray<ClickableZone *> *_clickableZonesAdded;
     int _lastDrawingDrawnWhenPageWasAt;
     float _horizontalHighlightPosPercent;
     int _horizontalHighlightPosPageNb;
@@ -179,6 +193,13 @@ CGContextRef _context;
     int _verticalHighlightPosPageNb;
     bool _hasSentPosInit;
     float _lastZoomLevel;
+    bool _hasRestoredViewState;
+    bool _showPagesNav;
+    NSString *_chartStart;
+    NSString *_chartEnd;
+    PDFAnnotation* _annotationChartStart;
+    PDFAnnotation* _annotationChartEnd;
+    
 }
 
 
@@ -210,10 +231,20 @@ CGContextRef _context;
         _lastDrawingDrawnWhenPageWasAt = -42;
         
 		_timerPosition = nil;
-		
+        
+        _hasRestoredViewState = NO;
+        _showPagesNav = NO;
+        _singlePage = NO;
+        _chartStart = nil;
+        _chartEnd = nil;
+        
         // init and config PDFView
         _pdfView = [[MyPDFView alloc] initWithFrame:CGRectMake(0, 0, 500, 500)];
-        _pdfView.displayMode = kPDFDisplaySinglePageContinuous;
+        if (_singlePage == YES)
+            _pdfView.displayMode = kPDFDisplaySinglePage;
+        else
+            _pdfView.displayMode = kPDFDisplaySinglePageContinuous;
+        _pdfView.displayMode = kPDFDisplaySinglePage;//kPDFDisplaySinglePageContinuous;
         _pdfView.autoScales = YES;
         _pdfView.displaysPageBreaks = NO;
         _pdfView.displayBox = kPDFDisplayBoxMediaBox;
@@ -229,8 +260,13 @@ CGContextRef _context;
         _hasSentPosInit = false;
         _lastZoomLevel = -1;
         
-        _annotationsAdded =  [[NSMutableArray alloc] init];
-        _drawingsAdded =  [[NSMutableArray alloc] init];
+        _annotationsAdded = [[NSMutableArray alloc] init];
+        _drawingsAdded = [[NSMutableArray alloc] init];
+        _chartHighlightsAdded = [[NSMutableArray alloc] init];
+        _clickableZonesAdded = [[NSMutableArray alloc] init];
+        _editChartHighlightsAdded = [[NSMutableArray alloc] init];
+        _annotationChartStart = nil;
+        _annotationChartEnd = nil;
         [self addSubview:_pdfView];
         
         
@@ -278,6 +314,14 @@ CGContextRef _context;
         if (_initializing == YES)
 			return;
 		_initializing = YES;
+        
+        if ([changedProps containsObject:@"singlePage"]) {
+            if (_singlePage == YES)
+                _pdfView.displayMode = kPDFDisplaySinglePage;
+            else
+                _pdfView.displayMode = kPDFDisplaySinglePageContinuous;
+        }
+            
         
         float zoomFromRestoreViewState = 0;
         
@@ -424,20 +468,65 @@ CGContextRef _context;
                 [_pdfView usePageViewController:NO withViewOptions:Nil];
             }
         }
+        PDFPage *pdfPage = nil;
+        if (_page == -1)
+            pdfPage = [_pdfDocument pageAtIndex:0];
+        else
+            pdfPage = [_pdfDocument pageAtIndex:_page - 1];
+        
+
+        if (_pdfDocument && ([changedProps containsObject:@"showPagesNav"])) {
+            if (_showPagesNav == YES) {
+                [_pdfView setDisplaysPageBreaks:YES];
+                //if (pdfPage.rotation == 90 || pdfPage.rotation == 270)
+                  //  [_pdfView setPageBreakMargins:UIEdgeInsetsMake(100, 0, 0, 0)];
+                //else
+                [_pdfView setPageBreakMargins:UIEdgeInsetsMake(50, 0, 0, 0)];
+            }
+        }
+        
+        if (_pdfDocument && ([changedProps containsObject:@"chartStart"] || [changedProps containsObject:@"chartEnd"]) && _chartStart && _chartStart.length > 0) {
+            
+            NSArray *array = [_chartStart componentsSeparatedByString:@"|"];
+            
+            //UIImage *appIcon = [UIImage imageWithContentsOfFile:array[2]];
+            UIImage *icon = [UIImage imageNamed:@"crosshairTop"];
+            
+            if (_annotationChartStart) {
+                PDFPage *annotationPage = [_pdfDocument pageAtIndex:_page -1];
+              
+                [annotationPage removeAnnotation:_annotationChartStart];
+                _annotationChartStart = nil;
+            }
+            _annotationChartStart = [self addImgAnnotationAtSpot:(_page -1) xPerc:[array[0] floatValue] yPerc:[array[1] floatValue] image:icon imgSize:(30.0 / _scale) action:nil];
+            
+            if (_chartEnd && _chartEnd.length > 0) {
+                
+                if (_annotationChartEnd) {
+                    PDFPage *annotationPage = [_pdfDocument pageAtIndex:_page -1];
+                  
+                    [annotationPage removeAnnotation:_annotationChartEnd];
+                    _annotationChartEnd = nil;
+                }
+                
+                NSArray *arrayEnd = [_chartEnd componentsSeparatedByString:@"|"];
+                _annotationChartEnd = [self addHighlightAnnotationAtSpot:(_page -1) startXPerc:[array[0] floatValue] startYPerc:[array[1] floatValue] endXPerc:[arrayEnd[0] floatValue] endYPerc:[arrayEnd[1] floatValue] color:@"22ff22"];
+                
+            }
+            
+        }
+        
        
+       // [_pdfView setLayoutMargins:UIEdgeInsetsMake(0, 0, 100, 0)];
+                             
         if (_pdfDocument && ([changedProps containsObject:@"path"] || [changedProps containsObject:@"enablePaging"] || [changedProps containsObject:@"horizontal"] || [changedProps containsObject:@"page"] || [changedProps containsObject:@"restoreViewState"] || [changedProps containsObject:@"annotations"] || [changedProps containsObject:@"highlightLines"] || [changedProps containsObject:@"drawings"])) {
 			
             
             
-            PDFPage *pdfPage = nil;
-            if (_page == -1)
-                pdfPage = [_pdfDocument pageAtIndex:0];
-            else
-                pdfPage = [_pdfDocument pageAtIndex:_page - 1];
+            
             if (pdfPage) {
 				
-				
-				
+        
                 CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxMediaBox];
                 
                 // some pdf with rotation, then adjust it
@@ -446,21 +535,26 @@ CGContextRef _context;
                     _isLandscape = 1;
                 }
 				 
+                if (_hasRestoredViewState == NO) {
+                    if ([_restoreViewState length] != 0) {
+                        NSArray *array = [_restoreViewState componentsSeparatedByString:@"/"];
+                        NSLog(@"restoringviewstate: %i %f %f", _page, [array[2] floatValue], [array[4] floatValue]);
+                        CGRect targetRect = { {[array[1] floatValue], [array[2] floatValue]}, {[array[3] floatValue], [array[4] floatValue]} };
+                        
+                        [_pdfView goToRect:targetRect onPage:pdfPage];
+                        
+                        _highlighter_page = [array[7] intValue];
+                        
+                        
+                        _hasRestoredViewState = YES;
+                    }
+                    else {
+                        CGPoint pointLeftTop = CGPointMake(0,  pdfPageRect.size.height);
+                        PDFDestination *pdfDest = [[PDFDestination alloc] initWithPage:pdfPage atPoint:pointLeftTop];
+                        [_pdfView goToDestination:pdfDest];
+                    }
+                }
 				
-				if ([_restoreViewState length] != 0) {
-					NSArray *array = [_restoreViewState componentsSeparatedByString:@"/"];
-					
-					CGRect targetRect = { {[array[1] floatValue], [array[2] floatValue]}, {[array[3] floatValue], [array[4] floatValue]} };
-					
-					[_pdfView goToRect:targetRect onPage:pdfPage];
-                    
-                    _highlighter_page = [array[7] intValue];
-				}
-				else {
-					CGPoint pointLeftTop = CGPointMake(0,  pdfPageRect.size.height);
-					PDFDestination *pdfDest = [[PDFDestination alloc] initWithPage:pdfPage atPoint:pointLeftTop];
-					[_pdfView goToDestination:pdfDest];
-				}
 				
 				//savedRect	CGRect	(origin = (x = 156.29249129685482, y = 318.01580670334749), size = (width = 111.27272811160432, height = 178.46640450750056))
 				
@@ -475,7 +569,7 @@ CGContextRef _context;
         }
         
         
-        if (_pdfDocument && ([changedProps containsObject:@"annotations"] || [changedProps containsObject:@"highlightLines"] || [changedProps containsObject:@"drawings"] || _lastDrawingDrawnWhenPageWasAt != _page)) {
+        if (_pdfDocument && ([changedProps containsObject:@"annotations"] || [changedProps containsObject:@"highlightLines"] || [changedProps containsObject:@"drawings"] || [changedProps containsObject:@"chartHighlights"]  || _lastDrawingDrawnWhenPageWasAt != _page)) {
             
             
             _lastDrawingDrawnWhenPageWasAt = _page;
@@ -510,6 +604,14 @@ CGContextRef _context;
                     for (id object in _drawingsAdded) {
                         [annotationPage removeAnnotation:object];
                     }
+                    
+                    for (id object in _chartHighlightsAdded) {
+                        [annotationPage removeAnnotation:object];
+                    }
+                    for (id object in _editChartHighlightsAdded) {
+                        [annotationPage removeAnnotation:object];
+                    }
+                    
                     iter++;
                     
                     
@@ -771,7 +873,28 @@ CGContextRef _context;
                     
                 
                 }
-                
+                if (_chartHighlights != nil && [_chartHighlights count] > 0) {
+                    for (id object in _chartHighlights) {
+                        float startXPerc = [[object objectForKey:@"startX"] floatValue];
+                        float startYPerc = [[object objectForKey:@"startY"] floatValue];
+                        float endXPerc = [[object objectForKey:@"endX"] floatValue];
+                        float endYPerc = [[object objectForKey:@"endY"] floatValue];
+                        
+                        long pageNb = [[object objectForKey:@"pageNb"] integerValue];
+                       
+                        NSString *color = (NSString *)[object objectForKey:@"color"];
+                    
+                        PDFAnnotation *annotation = [self addHighlightAnnotationAtSpot:(_page -1) startXPerc:startXPerc startYPerc:startYPerc endXPerc:endXPerc endYPerc:endYPerc color:color];
+                        
+                        [_chartHighlightsAdded addObject:annotation];
+                        
+                        UIImage *appIcon = [UIImage imageNamed: [[[[[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleIcons"] objectForKey:@"CFBundlePrimaryIcon"] objectForKey:@"CFBundleIconFiles"]  objectAtIndex:0]];
+                        PDFAnnotation *editHightlight = [self addImgAnnotationAtSpot:pageNb xPerc:startXPerc yPerc:startYPerc image:appIcon imgSize:(40 / _scale) action:nil];
+                        
+                        [_editChartHighlightsAdded addObject:editHightlight];
+                        
+                    }
+                }
                 if (_highlightLines != nil && [_highlightLines count] > 0) {
                     for (id object in _highlightLines) {
                         // do something with object
@@ -863,6 +986,9 @@ CGContextRef _context;
             }
         }
         
+        if (_singlePage == YES)
+            [self showPreviousAndNextPages:_page - 1];
+        
         
         if (_enableDarkMode)
             _pdfView.backgroundColor = [UIColor blackColor];
@@ -892,6 +1018,213 @@ CGContextRef _context;
         }
     }
 }
+
+
+- (void)showPreviousAndNextPages:(long)pageNb
+{
+    
+    UIImage *previous_icon = [UIImage imageNamed:@"back_blue"];
+    UIImage *next_icon = [UIImage imageNamed:@"forward_blue"];
+    [self addImgAnnotationAtSpot:pageNb xPerc:60.0 yPerc:105.0 image:previous_icon imgSize:25.0 action:@"previous"];
+    [self addImgAnnotationAtSpot:pageNb xPerc:40.0 yPerc:105.0 image:next_icon imgSize:25.0 action:@"next"];
+    //[self addAnnotationAtSpot:pageNb xPerc:40.0 yPerc:102.0 title:@"➡️"];
+    //[self addAnnotationAtSpot:pageNb xPerc:60.0 yPerc:102.0 title:@"⬅️"];
+}
+
+
+- (PDFAnnotation *)addHighlightAnnotationAtSpot:(long)pageNb startXPerc:(float)startXPerc startYPerc:(float)startYPerc endXPerc:(float)endXPerc endYPerc:(float)endYPerc color:(NSString *)color
+{
+    PDFPage *pdfPage = [_pdfDocument pageAtIndex:pageNb];
+    CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxMediaBox];
+
+    //sur android c'est plus petit que sur ios, on ajuste
+    //size = size * 0.8;
+
+    float startX = 0;
+    float startY = 0;
+    if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
+        startX = (pdfPageRect.size.width * (100 - startYPerc) / 100);
+        startY = (pdfPageRect.size.height * startXPerc / 100);
+    }
+    else {
+        startX = pdfPageRect.size.width - (pdfPageRect.size.width * startXPerc / 100);
+        startY = pdfPageRect.size.height - (pdfPageRect.size.height * startYPerc / 100);
+    }
+
+    float endX = 0;
+    float endY = 0;
+    if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
+          
+        endX = (pdfPageRect.size.width * (100 - endYPerc) / 100);
+        endY = (pdfPageRect.size.height * endXPerc / 100);
+    }
+    else {
+        endX = pdfPageRect.size.width - (pdfPageRect.size.width * endXPerc / 100);
+        endY = pdfPageRect.size.height - (pdfPageRect.size.height * endYPerc / 100);
+    }
+
+    PDFPage *annotationPage = [_pdfDocument pageAtIndex:pageNb];
+
+    CGRect targetRect;
+   // if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
+        targetRect = CGRectMake( startX, startY, endX - startX, endY - startY);
+        //targetRect = CGRectMake(startX, startY, endX - startY, endY - startY);
+   // }
+    //else {
+      //  targetRect = CGRectMake( startX, startY, endX - startX, endY - startY);
+    //}
+    
+    PDFAnnotation* annotation = [[PDFAnnotation alloc] initWithBounds:targetRect forType:PDFAnnotationSubtypeHighlight withProperties:nil];
+    annotation.color = [self getUIColorObjectFromHexString:color alpha:0.3];
+    [annotationPage addAnnotation:annotation];
+
+    
+    
+    
+    return annotation;
+}
+
+- (PDFAnnotation *)addImgAnnotationAtSpot:(long)pageNb xPerc:(float)xPercStart yPerc:(float)yPercStart image:(UIImage *)image imgSize:(float)imgSize action:(NSString *)action
+{
+    PDFPage *pdfPage = [_pdfDocument pageAtIndex:pageNb];
+    CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxMediaBox];
+    
+    //float xPercEnd = xPercStart + 5;
+    //float yPercEnd = yPercStart + 5;
+    float startX = 0;
+    float startY = 0;
+    
+    float endX = 0;
+    float endY = 0;
+    
+   
+    float width;
+    float height;
+    float offsetX;
+    float offsetY;
+    
+    if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
+        startX = (pdfPageRect.size.width * (100 - yPercStart) / 100);
+        startY = (pdfPageRect.size.height * xPercStart / 100);
+    }
+    else {
+        startX = pdfPageRect.size.width - (pdfPageRect.size.width * xPercStart / 100);
+        startY = (pdfPageRect.size.height) - (pdfPageRect.size.height * (yPercStart/ 100));
+    }
+
+    offsetX = pdfPageRect.origin.x;
+    offsetY = pdfPageRect.origin.y;
+
+    CGRect targetRect;
+
+       // targetRect = CGRectMake( startX - (imgSize / 2), startY - (imgSize / 2), imgSize, imgSize);
+
+    if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
+        targetRect = CGRectMake(startX - (imgSize / 2), startY - (imgSize / 2), imgSize, imgSize);
+    }
+    else {
+        targetRect = CGRectMake( startX - (imgSize / 2), startY - (imgSize / 2), imgSize, imgSize);
+   }
+   
+    //UIImage *image = [UIImage imageWithContentsOfFile:imgUri];
+    
+    if (pdfPage.rotation == 90) {
+        image = [UIImage imageWithCGImage:image.CGImage
+                                                scale:image.scale
+                                          orientation:UIImageOrientationLeft];
+    }
+    else if (pdfPage.rotation == 270) {
+        image = [UIImage imageWithCGImage:image.CGImage
+                                                scale:image.scale
+                                          orientation:UIImageOrientationRight];
+    }
+    else {
+        //image = [UIImage imageWithCGImage:image.CGImage
+        //                                        scale:image.scale
+          //                                orientation:UIImageOrientationDownMirrored];
+    }
+   
+    PDFPage *annotationPage = [_pdfDocument pageAtIndex:pageNb];
+    PDFImageAnnotation* annotation = [[PDFImageAnnotation alloc] initWithPicture:image bounds:targetRect offsetX:offsetX offsetY:offsetY];
+    annotation.backgroundColor = UIColor.redColor;
+     annotation.color = [UIColor colorWithRed:213.0/255.0 green:41.0/255.0 blue:65.0/255.0 alpha:0];
+                            // annotation.iconType = kPDFTextAnnotationIconNote;
+    [annotationPage addAnnotation:annotation];
+    
+    if (action) {
+        ClickableZone *clickableZone = [[ClickableZone alloc] init];
+        clickableZone.action = action;
+        clickableZone.bounds = targetRect;
+        [_clickableZonesAdded addObject:clickableZone];
+        
+    }
+    
+    return annotation;
+}
+
+- (void)addTextAnnotationAtSpot:(long)pageNb xPerc:(float)xPerc yPerc:(float)yPerc title:(NSString *)title
+{
+    
+    NSString *color = @"#5f433d";
+    
+    long fontSize = 16;
+    
+    PDFPage *pdfPage = [_pdfDocument pageAtIndex:pageNb];
+    CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxMediaBox];
+    
+    
+    float x = 0;
+    float y = 0;
+    
+    if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
+      // x = (pdfPageRect.size.width * (100 - yPerc) / 100) - (pdfPageRect.size.height - pdfPageRect.size.width);
+     //  y = (pdfPageRect.size.height * xPerc / 100);
+        x = (pdfPageRect.size.width * (100 - yPerc) / 100);
+        y = (pdfPageRect.size.height * xPerc / 100);
+    }
+    /*else if (pdfPage.rotation == 270) {
+        x = (pdfPageRect.size.width * (100 - yPerc) / 100);
+        y = (pdfPageRect.size.height * xPerc / 100);
+    }*/
+    else {
+        x = pdfPageRect.size.width - (pdfPageRect.size.width * xPerc / 100);
+        y = pdfPageRect.size.height - (pdfPageRect.size.height * yPerc / 100);
+    }
+   // x = pdfPageRect.size.width - (pdfPageRect.size.width * xPerc / 100);
+   // y = pdfPageRect.size.height - (pdfPageRect.size.height * yPerc / 100);
+    
+    //float x = pdfPageRect.size.width - (pdfPageRect.size.width * xPerc / 100);
+    //float y = pdfPageRect.size.height - (pdfPageRect.size.height * yPerc / 100);
+    
+    float width = 25;
+    float height = 25;
+    
+    
+    
+    CGRect targetRect;
+    if (pdfPage.rotation == 90) {
+        targetRect = CGRectMake(x, y - 5, width, height);
+    }
+    else if (pdfPage.rotation == 270) {
+        width = 150;
+        height = 40;
+        targetRect = CGRectMake(x - height, y - width, height, width);
+    }
+    else {
+        targetRect = CGRectMake( x - 5, y - (height - 10), width, height);
+   }
+    
+    
+    PDFPage *annotationPage = [_pdfDocument pageAtIndex:pageNb];
+    PDFAnnotation* annotation = [[PDFAnnotation alloc] initWithBounds:targetRect forType:PDFAnnotationSubtypeFreeText withProperties:nil];
+    // annotation.color = [UIColor colorWithRed:213.0/255.0 green:41.0/255.0 blue:65.0/255.0 alpha:0];
+    annotation.font = [UIFont fontWithName:@"ArialMT" size:fontSize];
+    annotation.fontColor = [self getUIColorObjectFromHexString:color alpha:1];
+    annotation.contents = title;
+    //annotation.iconType = kPDFTextAnnotationIconNote;
+    [annotationPage addAnnotation:annotation];
+}
+
 
 - (void)PDFViewWillClickOnLink:(PDFView *)sender withURL:(NSURL *)url
 {
@@ -1135,6 +1468,29 @@ CGContextRef _context;
 	[self didMove];
 }
 
+
+- (void)checkIfClickableTouched:(UITapGestureRecognizer *)sender
+{
+    PDFPage *pdfPage = [_pdfDocument pageAtIndex:_page - 1];
+    
+    CGPoint point = [sender locationInView:self];
+    point = [_pdfView convertPoint:point toPage:pdfPage];
+    for (ClickableZone *object in _clickableZonesAdded) {
+        
+ 
+        if (point.x > object.bounds.origin.x && point.x < object.bounds.origin.x + object.bounds.size.width
+            && point.y > object.bounds.origin.y && point.y < object.bounds.origin.y + object.bounds.size.height) {
+            NSLog(@"Annotation hit");
+            if ([object.action isEqualToString:@"next"]) {
+                _onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"onSwitchPage|%d", _page + 1]]});
+            }
+            if ([object.action isEqualToString:@"previous"]) {
+                _onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"onSwitchPage|%d", _page - 1]]});
+            }
+        }
+        
+    }
+}
 /**
  *  Single Tap
  *  stop zoom
@@ -1143,7 +1499,7 @@ CGContextRef _context;
  */
 - (void)handleSingleTap:(UITapGestureRecognizer *)sender
 {
-	
+    [self checkIfClickableTouched:sender];
     //_pdfView.scaleFactor = _pdfView.minScaleFactor;
     
     CGPoint point = [sender locationInView:self];
@@ -1211,6 +1567,37 @@ CGContextRef _context;
     ///[self onScaleChanged:Nil];
     
     [self didMove];
+}
+
+
+-(BOOL)imgAnnotationClicked:(CGPoint)point{
+    
+    PDFPage *pdfPage = [_pdfView pageForPoint:point nearest:NO];
+    if (pdfPage) {
+        unsigned long page = [_pdfDocument indexForPage:pdfPage];
+        
+        //point = [_pdfView convertPoint:point toPage:pdfPage];
+        
+        
+        CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxMediaBox];
+        
+        
+        
+        CGPoint pointOnPage = [_pdfView convertPoint:point toPage:pdfPage];
+
+            for (PDFAnnotation *annotation in pdfPage.annotations) {
+               
+                if (pointOnPage.x >= annotation.bounds.origin.x && pointOnPage.x <= annotation.bounds.origin.x + annotation.bounds.size.width
+                    && pointOnPage.y >= annotation.bounds.origin.y && pointOnPage.y <= annotation.bounds.origin.y + annotation.bounds.size.height)
+                {
+                    NSLog(@"Annotation hit: %@", annotation);
+                }
+            }
+        
+        
+    }
+    
+    return NO;
 }
 
 -(BOOL)annotationClicked:(CGPoint)point{

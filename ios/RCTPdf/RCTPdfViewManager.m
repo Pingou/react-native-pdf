@@ -48,7 +48,11 @@ RCT_EXPORT_VIEW_PROPERTY(annotations, NSArray);
 RCT_EXPORT_VIEW_PROPERTY(drawings, NSArray);
 RCT_EXPORT_VIEW_PROPERTY(highlightLines, NSArray);
 RCT_EXPORT_VIEW_PROPERTY(enableDarkMode, BOOL);
-
+RCT_EXPORT_VIEW_PROPERTY(showPagesNav, BOOL);
+RCT_EXPORT_VIEW_PROPERTY(singlePage, BOOL);
+RCT_EXPORT_VIEW_PROPERTY(chartStart, NSString);
+RCT_EXPORT_VIEW_PROPERTY(chartEnd, NSString);
+RCT_EXPORT_VIEW_PROPERTY(chartHighlights, NSArray);
 RCT_EXPORT_METHOD(supportPDFKit:(RCTResponseSenderBlock)callback)
 {
     if([[[UIDevice currentDevice] systemVersion] compare:@"11.0" options:NSNumericSearch] == NSOrderedDescending
