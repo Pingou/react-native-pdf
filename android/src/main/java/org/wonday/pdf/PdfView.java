@@ -921,6 +921,9 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                 this.addIcon(canvas, pageWidth, pageHeight, 64, 100 + (6 / this.getZoom()), this.imgNext, 70, "nextPage");
             }
 
+
+        }
+        if (instance != null) {
             if (this.chartHighlights != null) {
                 for (PdfHighlightLine highlight : this.chartHighlights) {
                     drawRect(canvas, pageWidth, pageHeight, (float)highlight.startX, (float)highlight.startY, (float)highlight.endX, (float)highlight.endY, "#55" + highlight.color.replace("#", ""));
@@ -929,6 +932,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                 }
             }
         }
+
 
 
         if (instance != null && pdfAnnotations != null) {

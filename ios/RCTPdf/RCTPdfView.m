@@ -195,6 +195,7 @@ CGContextRef _context;
     float _lastZoomLevel;
     bool _hasRestoredViewState;
     bool _showPagesNav;
+    bool _hasAddedPreviousAndNext;
     NSString *_chartStart;
     NSString *_chartEnd;
     PDFAnnotation* _annotationChartStart;
@@ -267,6 +268,8 @@ CGContextRef _context;
         _editChartHighlightsAdded = [[NSMutableArray alloc] init];
         _annotationChartStart = nil;
         _annotationChartEnd = nil;
+        
+        _hasAddedPreviousAndNext = NO;
         [self addSubview:_pdfView];
         
         
@@ -986,7 +989,7 @@ CGContextRef _context;
             }
         }
         
-        if (_singlePage == YES)
+        if (_showPagesNav == YES && _hasAddedPreviousAndNext == NO)
             [self showPreviousAndNextPages:_page - 1];
         
         
@@ -1025,10 +1028,11 @@ CGContextRef _context;
     
     UIImage *previous_icon = [UIImage imageNamed:@"back_blue"];
     UIImage *next_icon = [UIImage imageNamed:@"forward_blue"];
-    [self addImgAnnotationAtSpot:pageNb xPerc:60.0 yPerc:105.0 image:previous_icon imgSize:25.0 action:@"previous"];
-    [self addImgAnnotationAtSpot:pageNb xPerc:40.0 yPerc:105.0 image:next_icon imgSize:25.0 action:@"next"];
-    //[self addAnnotationAtSpot:pageNb xPerc:40.0 yPerc:102.0 title:@"➡️"];
-    //[self addAnnotationAtSpot:pageNb xPerc:60.0 yPerc:102.0 title:@"⬅️"];
+    [self addImgAnnotationAtSpot:pageNb xPerc:60.0 yPerc:105.0 image:previous_icon imgSize:20.0 action:@"previous"];
+    [self addImgAnnotationAtSpot:pageNb xPerc:40.0 yPerc:105.0 image:next_icon imgSize:20.0 action:@"next"];
+    [self addImgAnnotationAtSpot:pageNb xPerc:60.0 yPerc:-4.0 image:previous_icon imgSize:20.0 action:@"previous"];
+    [self addImgAnnotationAtSpot:pageNb xPerc:40.0 yPerc:-4.0 image:next_icon imgSize:20.0 action:@"next"];
+    _hasAddedPreviousAndNext = YES;
 }
 
 
@@ -1565,6 +1569,25 @@ CGContextRef _context;
  */
 -(void)handlePan:(UIPanGestureRecognizer *)sender{
     ///[self onScaleChanged:Nil];
+    
+    /*
+        CGPoint velocity = [sender velocityInView:_pdfView];
+        CGFloat speed = sqrt(pow(velocity.x, 2) + pow(velocity.y, 2));
+        CGFloat angle = atan2(velocity.y, velocity.x);
+        angle = angle * (180.0 / M_PI);
+
+        if (speed > 100) {
+            CGPoint touchPoint = [sender locationInView:_pdfView];
+            CGFloat pageHeight = _pdfView.bounds.size.height / _pdfView.scaleFactor;
+            if (touchPoint.y < pageHeight * 0.1) {
+                // User swiped near the top of the page
+                NSLog(@"top");
+            } else if (touchPoint.y > pageHeight * 0.9) {
+                // User swiped near the bottom of the page
+                NSLog(@"bottom");
+            }
+        }
+    */
     
     [self didMove];
 }
