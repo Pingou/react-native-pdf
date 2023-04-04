@@ -740,6 +740,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
     @Override
     public void onLayerDrawn(Canvas canvas, float pageWidth, float pageHeight, int displayedPage){
 
+        this.clickableZones.clear();
         int pageNb = displayedPage;
         if (this.singlePage)
             pageNb = originalPage;
@@ -927,7 +928,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
             if (this.chartHighlights != null) {
                 for (PdfHighlightLine highlight : this.chartHighlights) {
                     drawRect(canvas, pageWidth, pageHeight, (float)highlight.startX, (float)highlight.startY, (float)highlight.endX, (float)highlight.endY, "#55" + highlight.color.replace("#", ""));
-                    this.addIcon(canvas, pageWidth, pageHeight, (float)highlight.startX, (float)highlight.startY, this.imgPencil, 70, null);
+                    this.addIcon(canvas, pageWidth, pageHeight, (float)highlight.startX, (float)highlight.startY, this.imgPencil, 45, null);
 
                 }
             }
@@ -1177,8 +1178,8 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                 .pageFitPolicy(this.fitPolicy)
                 .pageSnap(this.pageSnap)
                 .autoSpacing(false)
-                    .spacingTop(this.spacing != 0 ? this.spacing : this.singlePage ? 80 : 0)
-                    .spacingBottom(this.spacing != 0 ? this.spacing : this.singlePage ? 80 : 0)
+                    .spacingTop(this.spacing != 0 ? this.spacing : this.singlePage ? 60 : 0)
+                    .spacingBottom(this.spacing != 0 ? this.spacing : this.singlePage ? 60 : 0)
                 .pageFling(this.pageFling)
                 .enableAnnotationRendering(this.enableAnnotationRendering)
                 .nightMode(this.enableDarkMode)

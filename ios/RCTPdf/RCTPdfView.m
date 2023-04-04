@@ -245,7 +245,7 @@ CGContextRef _context;
             _pdfView.displayMode = kPDFDisplaySinglePage;
         else
             _pdfView.displayMode = kPDFDisplaySinglePageContinuous;
-        _pdfView.displayMode = kPDFDisplaySinglePage;//kPDFDisplaySinglePageContinuous;
+        //_pdfView.displayMode = kPDFDisplaySinglePage;//kPDFDisplaySinglePageContinuous;
         _pdfView.autoScales = YES;
         _pdfView.displaysPageBreaks = NO;
         _pdfView.displayBox = kPDFDisplayBoxMediaBox;
@@ -324,8 +324,7 @@ CGContextRef _context;
             else
                 _pdfView.displayMode = kPDFDisplaySinglePageContinuous;
         }
-            
-        
+       
         float zoomFromRestoreViewState = 0;
         
         if ([changedProps containsObject:@"restoreViewState"]) {
@@ -525,7 +524,11 @@ CGContextRef _context;
         if (_pdfDocument && ([changedProps containsObject:@"path"] || [changedProps containsObject:@"enablePaging"] || [changedProps containsObject:@"horizontal"] || [changedProps containsObject:@"page"] || [changedProps containsObject:@"restoreViewState"] || [changedProps containsObject:@"annotations"] || [changedProps containsObject:@"highlightLines"] || [changedProps containsObject:@"drawings"])) {
 			
             
-            
+            PDFPage *pdfPage = nil;
+           if (_page == -1)
+               pdfPage = [_pdfDocument pageAtIndex:0];
+           else
+               pdfPage = [_pdfDocument pageAtIndex:_page - 1];
             
             if (pdfPage) {
 				
@@ -538,12 +541,14 @@ CGContextRef _context;
                     _isLandscape = 1;
                 }
 				 
-                if (_hasRestoredViewState == NO) {
+               
+                if (_hasRestoredViewState == NO) {//} || _pdfView.currentPage != pdfPage) {
                     if ([_restoreViewState length] != 0) {
                         NSArray *array = [_restoreViewState componentsSeparatedByString:@"/"];
                         NSLog(@"restoringviewstate: %i %f %f", _page, [array[2] floatValue], [array[4] floatValue]);
                         CGRect targetRect = { {[array[1] floatValue], [array[2] floatValue]}, {[array[3] floatValue], [array[4] floatValue]} };
                         
+                        pdfPage = [_pdfDocument pageAtIndex:_page - 1];
                         [_pdfView goToRect:targetRect onPage:pdfPage];
                         
                         _highlighter_page = [array[7] intValue];
@@ -887,12 +892,12 @@ CGContextRef _context;
                        
                         NSString *color = (NSString *)[object objectForKey:@"color"];
                     
-                        PDFAnnotation *annotation = [self addHighlightAnnotationAtSpot:(_page -1) startXPerc:startXPerc startYPerc:startYPerc endXPerc:endXPerc endYPerc:endYPerc color:color];
+                        PDFAnnotation *annotation = [self addHighlightAnnotationAtSpot:(pageNb -1) startXPerc:startXPerc startYPerc:startYPerc endXPerc:endXPerc endYPerc:endYPerc color:color];
                         
                         [_chartHighlightsAdded addObject:annotation];
                         
                         UIImage *appIcon = [UIImage imageNamed: [[[[[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleIcons"] objectForKey:@"CFBundlePrimaryIcon"] objectForKey:@"CFBundleIconFiles"]  objectAtIndex:0]];
-                        PDFAnnotation *editHightlight = [self addImgAnnotationAtSpot:pageNb xPerc:startXPerc yPerc:startYPerc image:appIcon imgSize:(40 / _scale) action:nil];
+                        PDFAnnotation *editHightlight = [self addImgAnnotationAtSpot:(pageNb - 1) xPerc:startXPerc yPerc:startYPerc image:appIcon imgSize:(40 / _scale) action:nil];
                         
                         [_editChartHighlightsAdded addObject:editHightlight];
                         
@@ -988,8 +993,8 @@ CGContextRef _context;
                 
             }
         }
-        
-        if (_showPagesNav == YES && _hasAddedPreviousAndNext == NO)
+        long totalPageNb = [_pdfDocument pageCount];
+        if (_showPagesNav == YES && _hasAddedPreviousAndNext == NO && totalPageNb > 1)
             [self showPreviousAndNextPages:_page - 1];
         
         
@@ -1107,6 +1112,7 @@ CGContextRef _context;
     float offsetX;
     float offsetY;
     
+    imgSize = pdfPageRect.size.height / 10 / (_scale + 1);
     if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
         startX = (pdfPageRect.size.width * (100 - yPercStart) / 100);
         startY = (pdfPageRect.size.height * xPercStart / 100);
