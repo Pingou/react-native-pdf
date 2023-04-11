@@ -500,7 +500,7 @@ CGContextRef _context;
                 [annotationPage removeAnnotation:_annotationChartStart];
                 _annotationChartStart = nil;
             }
-            _annotationChartStart = [self addImgAnnotationAtSpot:(_page -1) xPerc:[array[0] floatValue] yPerc:[array[1] floatValue] image:icon imgSize:(30.0 / _scale) action:nil];
+            _annotationChartStart = [self addImgAnnotationAtSpot:(_page -1) xPerc:[array[0] floatValue] yPerc:[array[1] floatValue] image:icon imgSizeMultiplier:1.5 action:nil];
             
             if (_chartEnd && _chartEnd.length > 0) {
                 
@@ -542,7 +542,7 @@ CGContextRef _context;
                 }
 				 
                
-                if (_hasRestoredViewState == NO) {//} || _pdfView.currentPage != pdfPage) {
+                if (_hasRestoredViewState == NO || _pdfView.currentPage != pdfPage) {
                     if ([_restoreViewState length] != 0) {
                         NSArray *array = [_restoreViewState componentsSeparatedByString:@"/"];
                         NSLog(@"restoringviewstate: %i %f %f", _page, [array[2] floatValue], [array[4] floatValue]);
@@ -896,8 +896,8 @@ CGContextRef _context;
                         
                         [_chartHighlightsAdded addObject:annotation];
                         
-                        UIImage *appIcon = [UIImage imageNamed: [[[[[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleIcons"] objectForKey:@"CFBundlePrimaryIcon"] objectForKey:@"CFBundleIconFiles"]  objectAtIndex:0]];
-                        PDFAnnotation *editHightlight = [self addImgAnnotationAtSpot:(pageNb - 1) xPerc:startXPerc yPerc:startYPerc image:appIcon imgSize:(40 / _scale) action:nil];
+                        UIImage *pencilIcon = [UIImage imageNamed:@"pencil"];
+                        PDFAnnotation *editHightlight = [self addImgAnnotationAtSpot:(pageNb - 1) xPerc:startXPerc yPerc:startYPerc image:pencilIcon imgSizeMultiplier:0.5 action:nil];
                         
                         [_editChartHighlightsAdded addObject:editHightlight];
                         
@@ -1033,10 +1033,10 @@ CGContextRef _context;
     
     UIImage *previous_icon = [UIImage imageNamed:@"back_blue"];
     UIImage *next_icon = [UIImage imageNamed:@"forward_blue"];
-    [self addImgAnnotationAtSpot:pageNb xPerc:60.0 yPerc:105.0 image:previous_icon imgSize:20.0 action:@"previous"];
-    [self addImgAnnotationAtSpot:pageNb xPerc:40.0 yPerc:105.0 image:next_icon imgSize:20.0 action:@"next"];
-    [self addImgAnnotationAtSpot:pageNb xPerc:60.0 yPerc:-4.0 image:previous_icon imgSize:20.0 action:@"previous"];
-    [self addImgAnnotationAtSpot:pageNb xPerc:40.0 yPerc:-4.0 image:next_icon imgSize:20.0 action:@"next"];
+    [self addImgAnnotationAtSpot:pageNb xPerc:60.0 yPerc:105.0 image:previous_icon imgSizeMultiplier:1.0 action:@"previous"];
+    [self addImgAnnotationAtSpot:pageNb xPerc:40.0 yPerc:105.0 image:next_icon imgSizeMultiplier:1.0 action:@"next"];
+    [self addImgAnnotationAtSpot:pageNb xPerc:60.0 yPerc:-4.0 image:previous_icon imgSizeMultiplier:1.0 action:@"previous"];
+    [self addImgAnnotationAtSpot:pageNb xPerc:40.0 yPerc:-4.0 image:next_icon imgSizeMultiplier:1.0 action:@"next"];
     _hasAddedPreviousAndNext = YES;
 }
 
@@ -1093,7 +1093,7 @@ CGContextRef _context;
     return annotation;
 }
 
-- (PDFAnnotation *)addImgAnnotationAtSpot:(long)pageNb xPerc:(float)xPercStart yPerc:(float)yPercStart image:(UIImage *)image imgSize:(float)imgSize action:(NSString *)action
+- (PDFAnnotation *)addImgAnnotationAtSpot:(long)pageNb xPerc:(float)xPercStart yPerc:(float)yPercStart image:(UIImage *)image imgSizeMultiplier:(float)imgSizeMultiplier action:(NSString *)action
 {
     PDFPage *pdfPage = [_pdfDocument pageAtIndex:pageNb];
     CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxMediaBox];
@@ -1112,7 +1112,7 @@ CGContextRef _context;
     float offsetX;
     float offsetY;
     
-    imgSize = pdfPageRect.size.height / 10 / (_scale + 1);
+    float imgSize = pdfPageRect.size.height / 10 / (_scale + 1) * imgSizeMultiplier;
     if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
         startX = (pdfPageRect.size.width * (100 - yPercStart) / 100);
         startY = (pdfPageRect.size.height * xPercStart / 100);

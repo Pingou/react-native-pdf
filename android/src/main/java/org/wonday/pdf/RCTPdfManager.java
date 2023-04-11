@@ -224,12 +224,17 @@ public class RCTPdfManager extends SimpleViewManager<PdfView> {
                 ReadableMap obj = chartHighlights.getMap(i);
 
                 PdfView.PdfHighlightLine newChartHighlight = new PdfView.PdfHighlightLine(obj.getDouble("startX"), obj.getDouble("startY"), obj.getDouble("endX"), obj.getDouble("endY"),
-                        0, 0, 0, obj.getString("color"));
+                        obj.getInt("pageNb"), 0, 0, obj.getString("color"));
                 newList.add(newChartHighlight);
             }
         }
         pdfView.setChartHighlights(newList);
 
+    }
+
+    @ReactProp(name = "showPagesNav")
+    public void setShowPagesNag(PdfView pdfView, boolean showPagesNav) {
+        pdfView.setShowPagesNav(showPagesNav);
     }
 
     @ReactProp(name = "restoreViewState")

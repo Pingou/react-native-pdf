@@ -112,6 +112,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
     private boolean pageSnap = false;
     private FitPolicy fitPolicy = FitPolicy.WIDTH;
     private boolean singlePage = false;
+    private boolean showPagesNav = false;
 
     public PdfAnnotation chartStart;
     public PdfAnnotation chartEnd;
@@ -187,15 +188,15 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
         public double endX;
         public double endY;
         public String action;
-        //public int pageNb;
+        public int pageNb;
 
-        public ClickableZone(double startX, double startY, double endX, double endY, String action) {
+        public ClickableZone(double startX, double startY, double endX, double endY, String action, int pageNb) {
             this.startX = startX;
             this.startY = startY;
             this.endX = endX;
             this.endY = endY;
             this.action = action;
-            //this.pageNb = pageNb;
+            this.pageNb = pageNb;
         }
     }
 
@@ -905,31 +906,69 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
         if (this.singlePage && instance != null) {
             if (this.chartStart != null)
-                addIcon(canvas, pageWidth, pageHeight, (float)chartStart.x, (float)chartStart.y, this.imgTarget, 50, null);
+                addIcon(canvas, pageWidth, pageHeight, (float)chartStart.x, (float)chartStart.y, this.imgTarget, 100, null, -1, -1, 0.0f);
 
             if (this.chartEnd != null)
                 drawRect(canvas, pageWidth, pageHeight, (float)chartStart.x, (float)chartStart.y, (float)chartEnd.x, (float)chartEnd.y, "#55228822");
 
-            this.addText(canvas, pageWidth, pageHeight, 50, -(6 / this.getZoom()), (this.originalPage + 1) + " / " + this.totalNumberOfPages, "pageList");
-            this.addText(canvas, pageWidth, pageHeight, 50, 100 + (6 / this.getZoom()), (this.originalPage + 1) + " / " + this.totalNumberOfPages, "pageList");
-            if (this.originalPage > 0) {
-                this.addIcon(canvas, pageWidth, pageHeight, 36, -(6 / this.getZoom()), this.imgPrevious, 70, "previousPage");
-                this.addIcon(canvas, pageWidth, pageHeight, 36, 100 + (6 / this.getZoom()), this.imgPrevious, 70, "previousPage");
+            if (showPagesNav) {
+                this.addText(canvas, pageWidth, pageHeight, 50, -(6 / this.getZoom()), (this.originalPage + 1) + " / " + this.totalNumberOfPages, "pageList", -1, -1, 0.0f);
+                this.addText(canvas, pageWidth, pageHeight, 50, 100 + (6 / this.getZoom()), (this.originalPage + 1) + " / " + this.totalNumberOfPages, "pageList", -1, -1, 0.0f);
+                if (this.originalPage > 0) {
+                    this.addIcon(canvas, pageWidth, pageHeight, 36, -(6 / this.getZoom()), this.imgPrevious, 70, "previousPage", -1, -1, 0.0f);
+                    this.addIcon(canvas, pageWidth, pageHeight, 36, 100 + (6 / this.getZoom()), this.imgPrevious, 70, "previousPage", -1, -1, 0.0f);
 
+                }
+                if (this.originalPage + 1 < this.totalNumberOfPages) {
+                    this.addIcon(canvas, pageWidth, pageHeight, 64, -(6 / this.getZoom()), this.imgNext, 70, "nextPage", -1, -1, 0.0f);
+                    this.addIcon(canvas, pageWidth, pageHeight, 64, 100 + (6 / this.getZoom()), this.imgNext, 70, "nextPage", -1, -1, 0.0f);
+                }
             }
-            if (this.originalPage + 1 < this.totalNumberOfPages) {
-                this.addIcon(canvas, pageWidth, pageHeight, 64, -(6 / this.getZoom()), this.imgNext, 70, "nextPage");
-                this.addIcon(canvas, pageWidth, pageHeight, 64, 100 + (6 / this.getZoom()), this.imgNext, 70, "nextPage");
-            }
+
 
 
         }
         if (instance != null) {
-            if (this.chartHighlights != null) {
-                for (PdfHighlightLine highlight : this.chartHighlights) {
-                    drawRect(canvas, pageWidth, pageHeight, (float)highlight.startX, (float)highlight.startY, (float)highlight.endX, (float)highlight.endY, "#55" + highlight.color.replace("#", ""));
-                    this.addIcon(canvas, pageWidth, pageHeight, (float)highlight.startX, (float)highlight.startY, this.imgPencil, 45, null);
 
+
+            if (this.chartHighlights != null) {
+
+                float paddingX = 0.0f;
+                try {
+                    if (instance.isSwipeVertical()) {
+                        paddingX = instance.getSecondaryPageOffset(displayedPage, this.getZoom());
+                    } else {
+                        paddingX = instance.getPageOffset(displayedPage, this.getZoom());
+                    }
+                } catch (Exception e) {
+
+                }
+                for (PdfHighlightLine highlight : this.chartHighlights) {
+                    if (highlight.pageNb == pageNb || highlight.pageNb == pageNb - 1 || highlight.pageNb == pageNb + 1) {
+
+                        if (highlight.pageNb != pageNb && this.singlePage)
+                            continue;
+                        double startX = pageWidth * (highlight.startX / 100.0f) + paddingX;
+                        double startY = pageHeight * (highlight.startY / 100.0f);
+
+                        double endX = pageWidth * (highlight.endX / 100.0f) + paddingX;
+                        double endY = pageHeight * (highlight.endY / 100.0f);
+
+                        if (highlight.pageNb == displayedPage + 1) {
+                            startY += pageHeight + Util.getDP(getContext(), this.spacing);
+                            endY += pageHeight + Util.getDP(getContext(), this.spacing);
+                        }
+                        else if (highlight.pageNb == displayedPage - 1) {
+                            startY -= pageHeight + Util.getDP(getContext(), this.spacing);
+                            endY -= pageHeight + Util.getDP(getContext(), this.spacing);
+                        }
+                        paint.setColor(Color.parseColor("#55" + highlight.color.replace("#", "")));
+
+                        canvas.drawRect((float)startX, (float)startY, (float)endX, (float)endY,
+                                paint);
+                        //drawRect(canvas, pageWidth, pageHeight, (float) highlight.startX, (float) highlight.startY, (float) highlight.endX, (float) highlight.endY, "#55" + highlight.color.replace("#", ""));
+                        this.addIcon(canvas, pageWidth, pageHeight, (float) highlight.startX, (float) highlight.startY, this.imgPencil, 45, null, highlight.pageNb, pageNb, paddingX);
+                    }
                 }
             }
         }
@@ -985,10 +1024,6 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                     StaticLayout textLayout = new StaticLayout(
                             pdfAnnotation.icon + " " + pdfAnnotation.title, textPaint, textWidth, Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
 
-                    // get height of multiline text
-                    int textHeight = textLayout.getHeight();
-
-
                     // get position of text's top left corner
                     double x = pageWidth * (pdfAnnotation.x / 100.0f) + paddingX;
                     double y = pageHeight * (pdfAnnotation.y / 100.0f);
@@ -1027,12 +1062,21 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
     }
 
-    void addIcon(Canvas canvas, float pageWidth, float pageHeight, float xPerc, float yPerc, Drawable drawable, int iconSize, String action) {
-        double x = pageWidth * (xPerc / 100.0f);
+    void addIcon(Canvas canvas, float pageWidth, float pageHeight, float xPerc, float yPerc, Drawable drawable, int iconSize, String action, int targetPage, int currentPage, float paddingX) {
+        double x = pageWidth * (xPerc / 100.0f) + paddingX;
         double y = pageHeight * (yPerc / 100.0f);
 
         x -= iconSize / 2;
         y -= iconSize / 2;
+
+        if (targetPage != -1) {
+            if (targetPage == currentPage + 1) {
+                x += pageHeight + Util.getDP(getContext(), this.spacing);
+            } else if (targetPage == currentPage - 1) {
+                y -= pageHeight + Util.getDP(getContext(), this.spacing);
+            }
+        }
+
         drawable.setBounds(0, 0, iconSize, iconSize);
         //y = pageHeight + 100;
         // draw text to the Canvas center
@@ -1042,15 +1086,15 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
         canvas.restore();
 
         if (action != null) {
-            ClickableZone clickableZone = new ClickableZone(x, y, x + iconSize, y + iconSize, action);
+            ClickableZone clickableZone = new ClickableZone(x, y, x + iconSize, y + iconSize, action, targetPage);
             clickableZones.add(clickableZone);
         }
 
     }
 
 
-    void addText(Canvas canvas, float pageWidth, float pageHeight, float xPerc, float yPerc, String text, String action) {
-        double x = pageWidth * (xPerc / 100.0f);
+    void addText(Canvas canvas, float pageWidth, float pageHeight, float xPerc, float yPerc, String text, String action, int targetPage, int currentPage, float paddingX) {
+        double x = pageWidth * (xPerc / 100.0f) + paddingX;
         double y = pageHeight * (yPerc / 100.0f);
 
         textPaint.setColor(Color.parseColor("#888888"));
@@ -1065,6 +1109,13 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
         StaticLayout textLayout = new StaticLayout(
                 text, textPaint, textWidth, Layout.Alignment.ALIGN_CENTER, 1.0f, 0.0f, false);
 
+        if (targetPage != -1) {
+            if (targetPage == currentPage + 1) {
+                x += pageHeight + Util.getDP(getContext(), this.spacing);
+            } else if (targetPage == currentPage - 1) {
+                y -= pageHeight + Util.getDP(getContext(), this.spacing);
+            }
+        }
         x -= textWidth / 2;
         y -= textHeight / 3;
 
@@ -1076,7 +1127,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
         canvas.restore();
 
-        ClickableZone clickableZone = new ClickableZone(x, y, x + textWidth, y + textWidth, action);
+        ClickableZone clickableZone = new ClickableZone(x, y, x + textWidth, y + textWidth, action, targetPage);
         clickableZones.add(clickableZone);
     }
 
@@ -1210,7 +1261,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
         if (this.singlePage)
             this.page = page;
         else
-        this.page = page>1?page:1;
+            this.page = page>1?page:1;
     }
 
     public void setScale(float scale) {
@@ -1282,6 +1333,10 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
     public void setIsSinglePage(boolean value) {
         this.singlePage = value;
+    }
+
+    public void setShowPagesNav(boolean showPagesNav) {
+        this.showPagesNav = showPagesNav;
     }
 	
 /**
