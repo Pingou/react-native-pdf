@@ -88,6 +88,7 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 
 @interface ClickableZone : NSObject
     @property(strong) NSString *action;
+    @property(strong) NSString *param;
     @property (nonatomic, assign) CGRect bounds;
 @end
 
@@ -500,7 +501,7 @@ CGContextRef _context;
                 [annotationPage removeAnnotation:_annotationChartStart];
                 _annotationChartStart = nil;
             }
-            _annotationChartStart = [self addImgAnnotationAtSpot:(_page -1) xPerc:[array[0] floatValue] yPerc:[array[1] floatValue] image:icon imgSizeMultiplier:1.5 action:nil];
+            _annotationChartStart = [self addImgAnnotationAtSpot:(_page -1) xPerc:[array[0] floatValue] yPerc:[array[1] floatValue] image:icon imgSizeMultiplier:1.5 action:nil actionParam:nil alpha:1.0];
             
             if (_chartEnd && _chartEnd.length > 0) {
                 
@@ -890,6 +891,8 @@ CGContextRef _context;
                         
                         long pageNb = [[object objectForKey:@"pageNb"] integerValue];
                        
+                        int chartId = [[object objectForKey:@"id"] integerValue];
+                        NSString* chartIdStr = [NSString stringWithFormat:@"%i", chartId];
                         NSString *color = (NSString *)[object objectForKey:@"color"];
                     
                         PDFAnnotation *annotation = [self addHighlightAnnotationAtSpot:(pageNb -1) startXPerc:startXPerc startYPerc:startYPerc endXPerc:endXPerc endYPerc:endYPerc color:color];
@@ -897,7 +900,7 @@ CGContextRef _context;
                         [_chartHighlightsAdded addObject:annotation];
                         
                         UIImage *pencilIcon = [UIImage imageNamed:@"pencil"];
-                        PDFAnnotation *editHightlight = [self addImgAnnotationAtSpot:(pageNb - 1) xPerc:startXPerc yPerc:startYPerc image:pencilIcon imgSizeMultiplier:0.5 action:nil];
+                        PDFAnnotation *editHightlight = [self addImgAnnotationAtSpot:(pageNb - 1) xPerc:startXPerc yPerc:startYPerc image:pencilIcon imgSizeMultiplier:0.5 action:@"edit_chart" actionParam:chartIdStr alpha:0.7];
                         
                         [_editChartHighlightsAdded addObject:editHightlight];
                         
@@ -1033,10 +1036,10 @@ CGContextRef _context;
     
     UIImage *previous_icon = [UIImage imageNamed:@"back_blue"];
     UIImage *next_icon = [UIImage imageNamed:@"forward_blue"];
-    [self addImgAnnotationAtSpot:pageNb xPerc:60.0 yPerc:105.0 image:previous_icon imgSizeMultiplier:1.0 action:@"previous"];
-    [self addImgAnnotationAtSpot:pageNb xPerc:40.0 yPerc:105.0 image:next_icon imgSizeMultiplier:1.0 action:@"next"];
-    [self addImgAnnotationAtSpot:pageNb xPerc:60.0 yPerc:-4.0 image:previous_icon imgSizeMultiplier:1.0 action:@"previous"];
-    [self addImgAnnotationAtSpot:pageNb xPerc:40.0 yPerc:-4.0 image:next_icon imgSizeMultiplier:1.0 action:@"next"];
+    [self addImgAnnotationAtSpot:pageNb xPerc:60.0 yPerc:105.0 image:previous_icon imgSizeMultiplier:1.0 action:@"previous" actionParam:nil alpha:1.0];
+    [self addImgAnnotationAtSpot:pageNb xPerc:40.0 yPerc:105.0 image:next_icon imgSizeMultiplier:1.0 action:@"next" actionParam:nil alpha:1.0];
+    [self addImgAnnotationAtSpot:pageNb xPerc:60.0 yPerc:-4.0 image:previous_icon imgSizeMultiplier:1.0 action:@"previous" actionParam:nil alpha:1.0];
+    [self addImgAnnotationAtSpot:pageNb xPerc:40.0 yPerc:-4.0 image:next_icon imgSizeMultiplier:1.0 action:@"next" actionParam:nil alpha:1.0];
     _hasAddedPreviousAndNext = YES;
 }
 
@@ -1084,7 +1087,7 @@ CGContextRef _context;
     //}
     
     PDFAnnotation* annotation = [[PDFAnnotation alloc] initWithBounds:targetRect forType:PDFAnnotationSubtypeHighlight withProperties:nil];
-    annotation.color = [self getUIColorObjectFromHexString:color alpha:0.3];
+    annotation.color = [self getUIColorObjectFromHexString:color alpha:0.8];
     [annotationPage addAnnotation:annotation];
 
     
@@ -1093,7 +1096,7 @@ CGContextRef _context;
     return annotation;
 }
 
-- (PDFAnnotation *)addImgAnnotationAtSpot:(long)pageNb xPerc:(float)xPercStart yPerc:(float)yPercStart image:(UIImage *)image imgSizeMultiplier:(float)imgSizeMultiplier action:(NSString *)action
+- (PDFAnnotation *)addImgAnnotationAtSpot:(long)pageNb xPerc:(float)xPercStart yPerc:(float)yPercStart image:(UIImage *)image imgSizeMultiplier:(float)imgSizeMultiplier action:(NSString *)action actionParam:(NSString *)actionParam alpha:(float)alpha
 {
     PDFPage *pdfPage = [_pdfDocument pageAtIndex:pageNb];
     CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxMediaBox];
@@ -1157,13 +1160,14 @@ CGContextRef _context;
     PDFPage *annotationPage = [_pdfDocument pageAtIndex:pageNb];
     PDFImageAnnotation* annotation = [[PDFImageAnnotation alloc] initWithPicture:image bounds:targetRect offsetX:offsetX offsetY:offsetY];
     annotation.backgroundColor = UIColor.redColor;
-     annotation.color = [UIColor colorWithRed:213.0/255.0 green:41.0/255.0 blue:65.0/255.0 alpha:0];
+     annotation.color = [UIColor colorWithRed:213.0/255.0 green:41.0/255.0 blue:65.0/255.0 alpha:alpha];
                             // annotation.iconType = kPDFTextAnnotationIconNote;
     [annotationPage addAnnotation:annotation];
     
     if (action) {
         ClickableZone *clickableZone = [[ClickableZone alloc] init];
         clickableZone.action = action;
+        clickableZone.param = actionParam;
         clickableZone.bounds = targetRect;
         [_clickableZonesAdded addObject:clickableZone];
         
@@ -1496,6 +1500,9 @@ CGContextRef _context;
             }
             if ([object.action isEqualToString:@"previous"]) {
                 _onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"onSwitchPage|%d", _page - 1]]});
+            }
+            if ([object.action isEqualToString:@"edit_chart"]) {
+                _onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"onEditChart|%@", object.param]]});
             }
         }
         

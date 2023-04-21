@@ -188,15 +188,17 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
         public double endX;
         public double endY;
         public String action;
+        public String param;
         public int pageNb;
 
-        public ClickableZone(double startX, double startY, double endX, double endY, String action, int pageNb) {
+        public ClickableZone(double startX, double startY, double endX, double endY, String action, int pageNb, String param) {
             this.startX = startX;
             this.startY = startY;
             this.endX = endX;
             this.endY = endY;
             this.action = action;
             this.pageNb = pageNb;
+            this.param = param;
         }
     }
 
@@ -257,6 +259,8 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
     }
 
     public static class PdfHighlightLine {
+
+
         public double startX;
         public double startY;
         public double endX;
@@ -265,12 +269,13 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
         public int size;
         public int isVertical;
         public String color;
+        public int id;
 
         public PdfHighlightLine() {
 
         }
 
-        public PdfHighlightLine(double startX, double startY, double endX, double endY, int pageNb, int size, int isVertical, String color) {
+        public PdfHighlightLine(double startX, double startY, double endX, double endY, int pageNb, int size, int isVertical, String color, int id) {
             this.startX = startX;
             this.startY = startY;
             this.endX = endX;
@@ -280,6 +285,8 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
             this.size = size;
             this.isVertical = isVertical;
             this.color = color;
+
+            this.id = id;
         }
     }
 
@@ -707,11 +714,24 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                     event
             );
 
-            if (this.singlePage) {
-                MyCoordinate results = getPercentPosForPage(e.getX(), e.getY(), 0);
+            if (this.singlePage || clickableZones.size() > 0) {
 
-                double startX = results.x * this.pageWidths[0] / 100;
-                double startY = results.y * this.pageHeights[0] / 100;
+                int displayedPage = 0;
+                float pageWidth = 0;
+                float pageHeight = 0;
+                if (this.singlePage) {
+                    pageWidth = this.pageWidths[0];
+                    pageHeight = this.pageHeights[0];
+                }
+                else {
+                    displayedPage = instance.getCurrentPage();
+                    pageWidth = this.pageWidths[displayedPage];
+                    pageHeight = this.pageHeights[displayedPage];
+                }
+                MyCoordinate results = getPercentPosForPage(e.getX(), e.getY(), displayedPage);
+
+                double startX = results.x * this.pageWidths[displayedPage] / 100;
+                double startY = results.y * this.pageHeights[displayedPage] / 100;
                 for (ClickableZone clickableZone : clickableZones) {
                     if (startX > clickableZone.startX && startX < clickableZone.endX
                     && startY > clickableZone.startY && startY < clickableZone.endY) {
@@ -721,6 +741,8 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                             eventChangePage.putString("message", "onSwitchPage|"+(this.originalPage + 1));
                         else if (clickableZone.action.equals("previousPage"))
                             eventChangePage.putString("message", "onSwitchPage|"+(this.originalPage - 1));
+                        else if (clickableZone.action.equals("edit_chart"))
+                            eventChangePage.putString("message", "onEditChart|"+clickableZone.param);
 
                         reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(
                                 this.getId(),
@@ -906,7 +928,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
         if (this.singlePage && instance != null) {
             if (this.chartStart != null)
-                addIcon(canvas, pageWidth, pageHeight, (float)chartStart.x, (float)chartStart.y, this.imgTarget, 100, null, -1, -1, 0.0f);
+                addIcon(canvas, pageWidth, pageHeight, (float)chartStart.x, (float)chartStart.y, this.imgTarget, 100, null, null, -1, -1, 0.0f);
 
             if (this.chartEnd != null)
                 drawRect(canvas, pageWidth, pageHeight, (float)chartStart.x, (float)chartStart.y, (float)chartEnd.x, (float)chartEnd.y, "#55228822");
@@ -915,13 +937,13 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                 this.addText(canvas, pageWidth, pageHeight, 50, -(6 / this.getZoom()), (this.originalPage + 1) + " / " + this.totalNumberOfPages, "pageList", -1, -1, 0.0f);
                 this.addText(canvas, pageWidth, pageHeight, 50, 100 + (6 / this.getZoom()), (this.originalPage + 1) + " / " + this.totalNumberOfPages, "pageList", -1, -1, 0.0f);
                 if (this.originalPage > 0) {
-                    this.addIcon(canvas, pageWidth, pageHeight, 36, -(6 / this.getZoom()), this.imgPrevious, 70, "previousPage", -1, -1, 0.0f);
-                    this.addIcon(canvas, pageWidth, pageHeight, 36, 100 + (6 / this.getZoom()), this.imgPrevious, 70, "previousPage", -1, -1, 0.0f);
+                    this.addIcon(canvas, pageWidth, pageHeight, 36, -(6 / this.getZoom()), this.imgPrevious, 70, "previousPage", null, -1, -1, 0.0f);
+                    this.addIcon(canvas, pageWidth, pageHeight, 36, 100 + (6 / this.getZoom()), this.imgPrevious, 70, "previousPage", null, -1, -1, 0.0f);
 
                 }
                 if (this.originalPage + 1 < this.totalNumberOfPages) {
-                    this.addIcon(canvas, pageWidth, pageHeight, 64, -(6 / this.getZoom()), this.imgNext, 70, "nextPage", -1, -1, 0.0f);
-                    this.addIcon(canvas, pageWidth, pageHeight, 64, 100 + (6 / this.getZoom()), this.imgNext, 70, "nextPage", -1, -1, 0.0f);
+                    this.addIcon(canvas, pageWidth, pageHeight, 64, -(6 / this.getZoom()), this.imgNext, 70, "nextPage", null, -1, -1, 0.0f);
+                    this.addIcon(canvas, pageWidth, pageHeight, 64, 100 + (6 / this.getZoom()), this.imgNext, 70, "nextPage", null, -1, -1, 0.0f);
                 }
             }
 
@@ -967,7 +989,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                         canvas.drawRect((float)startX, (float)startY, (float)endX, (float)endY,
                                 paint);
                         //drawRect(canvas, pageWidth, pageHeight, (float) highlight.startX, (float) highlight.startY, (float) highlight.endX, (float) highlight.endY, "#55" + highlight.color.replace("#", ""));
-                        this.addIcon(canvas, pageWidth, pageHeight, (float) highlight.startX, (float) highlight.startY, this.imgPencil, 45, null, highlight.pageNb, pageNb, paddingX);
+                        this.addIcon(canvas, pageWidth, pageHeight, (float) highlight.startX, (float) highlight.startY, this.imgPencil, 45, "edit_chart", String.valueOf(highlight.id), highlight.pageNb, pageNb, paddingX);
                     }
                 }
             }
@@ -1062,7 +1084,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
     }
 
-    void addIcon(Canvas canvas, float pageWidth, float pageHeight, float xPerc, float yPerc, Drawable drawable, int iconSize, String action, int targetPage, int currentPage, float paddingX) {
+    void addIcon(Canvas canvas, float pageWidth, float pageHeight, float xPerc, float yPerc, Drawable drawable, int iconSize, String action, String actionParam, int targetPage, int currentPage, float paddingX) {
         double x = pageWidth * (xPerc / 100.0f) + paddingX;
         double y = pageHeight * (yPerc / 100.0f);
 
@@ -1086,7 +1108,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
         canvas.restore();
 
         if (action != null) {
-            ClickableZone clickableZone = new ClickableZone(x, y, x + iconSize, y + iconSize, action, targetPage);
+            ClickableZone clickableZone = new ClickableZone(x, y, x + iconSize, y + iconSize, action, targetPage, actionParam);
             clickableZones.add(clickableZone);
         }
 
@@ -1127,7 +1149,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
         canvas.restore();
 
-        ClickableZone clickableZone = new ClickableZone(x, y, x + textWidth, y + textWidth, action, targetPage);
+        ClickableZone clickableZone = new ClickableZone(x, y, x + textWidth, y + textWidth, action, targetPage, null);
         clickableZones.add(clickableZone);
     }
 

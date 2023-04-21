@@ -224,7 +224,7 @@ public class RCTPdfManager extends SimpleViewManager<PdfView> {
                 ReadableMap obj = chartHighlights.getMap(i);
 
                 PdfView.PdfHighlightLine newChartHighlight = new PdfView.PdfHighlightLine(obj.getDouble("startX"), obj.getDouble("startY"), obj.getDouble("endX"), obj.getDouble("endY"),
-                        obj.getInt("pageNb"), 0, 0, obj.getString("color"));
+                        obj.getInt("pageNb"), 0, 0, obj.getString("color"), obj.getInt("id"));
                 newList.add(newChartHighlight);
             }
         }
@@ -304,7 +304,7 @@ public class RCTPdfManager extends SimpleViewManager<PdfView> {
                 ReadableMap obj = highlightLines.getMap(i);
 
                 PdfView.PdfHighlightLine newHighlightLine = new PdfView.PdfHighlightLine(obj.getDouble("startX"), obj.getDouble("startY"), obj.getDouble("endX"), obj.getDouble("endY"),
-                         obj.getInt("pageNb"), obj.getInt("size"), obj.getInt("isVertical"), obj.getString("color"));
+                         obj.getInt("pageNb"), obj.getInt("size"), obj.getInt("isVertical"), obj.getString("color"), 0);
                 newList.add(newHighlightLine);
             }
         }
