@@ -1666,16 +1666,16 @@ CGContextRef _context;
         float annotationHeightMargin = 0.0;
         if (pdfPage.rotation == 90) {
             convertedPoint.y = 100 - convertedPoint.y;
-            annotationWidthMargin = (7 / _lastZoomLevel);
+            annotationWidthMargin = (10 / (_lastZoomLevel + 2));
         }
         else if (pdfPage.rotation == 270) {
             convertedPoint.x = 100 - convertedPoint.x;
-            annotationWidthMargin = (7 / _lastZoomLevel);
+            annotationWidthMargin = (10 / (_lastZoomLevel + 2));
         }
         else {
             convertedPoint.x = 100 - convertedPoint.x;
-            annotationHeightMargin = (7 / _lastZoomLevel);
-            annotationWidthMargin = (5 / _lastZoomLevel);
+            annotationHeightMargin = (10 / (_lastZoomLevel + 2));
+            annotationWidthMargin = (7 / (_lastZoomLevel + 2));
         }
         /*{
             float tmp = convertedPoint.x;
