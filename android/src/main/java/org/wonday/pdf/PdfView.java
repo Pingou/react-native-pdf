@@ -795,6 +795,8 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
             for (PdfDrawing pdfDrawing : pdfDrawings) {
 
                 if (pdfDrawing.pageNb == pageNb || pdfDrawing.pageNb == pageNb - 1 || pdfDrawing.pageNb == pageNb + 1) {
+                    if (pdfDrawing.pageNb != pageNb && this.singlePage)
+                        continue;
                     try {
                         // InputStream bit = this.context.getAssets().open("star.png");
                         // Bitmap bitmap = BitmapFactory.decodeStream(bit);
@@ -862,6 +864,8 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
                 if (highlightLine.pageNb == pageNb || highlightLine.pageNb == pageNb - 1 || highlightLine.pageNb == pageNb + 1) {
 
+                    if (highlightLine.pageNb != pageNb && this.singlePage)
+                        continue;
                     //Log.d("plop drawing at", " " + pageWidth * pdfAnnotation.x / 100);
 
                     paint.setColor(Color.parseColor((this.enableDarkMode ? "#88" : "#55") + highlightLine.color.replace("#", "")));
@@ -871,9 +875,9 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
                     try {
                         if (instance.isSwipeVertical()) {
-                            paddingX = instance.getSecondaryPageOffset(highlightLine.pageNb, this.getZoom());
+                            paddingX = instance.getSecondaryPageOffset(displayedPage, this.getZoom());
                         } else {
-                            paddingX = instance.getPageOffset(highlightLine.pageNb, this.getZoom());
+                            paddingX = instance.getPageOffset(displayedPage, this.getZoom());
                         }
                     }
                     catch (Exception e) {
@@ -1002,15 +1006,17 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
                 if (pdfAnnotation.pageNb == pageNb || pdfAnnotation.pageNb == pageNb - 1 || pdfAnnotation.pageNb == pageNb + 1) {
 
+                    if (pdfAnnotation.pageNb != pageNb && this.singlePage)
+                        continue;
                     //Log.d("plop drawing at", " " + pageWidth * pdfAnnotation.x / 100);
 
                     float paddingX = 0.0f;
 
                     try {
                         if (instance.isSwipeVertical()) {
-                            paddingX = instance.getSecondaryPageOffset(pdfAnnotation.pageNb, this.getZoom());
+                            paddingX = instance.getSecondaryPageOffset(displayedPage, this.getZoom());
                         } else {
-                            paddingX = instance.getPageOffset(pdfAnnotation.pageNb, this.getZoom());
+                            paddingX = instance.getPageOffset(displayedPage, this.getZoom());
                         }
                     }
                     catch (Exception e) {
