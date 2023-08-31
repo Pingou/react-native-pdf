@@ -16,7 +16,6 @@ import {
     View,
     Platform,
     ProgressBarAndroid,
-    ProgressViewIOS,
     StyleSheet,
     Dimensions
 } from 'react-native';
@@ -565,11 +564,7 @@ export default class Pdf extends Component {
                                             style={styles.progressBar}
                                             {...this.props.activityIndicatorProps}
                                         />
-                                        : <ProgressViewIOS
-                                            progress={this.state.progress}
-                                            style={styles.progressBar}
-                                            {...this.props.activityIndicatorProps}
-                                        />}
+                                        : <View></View>}
                             </View>):(
                                 Platform.OS === "android"?(
                                         <PdfCustom
