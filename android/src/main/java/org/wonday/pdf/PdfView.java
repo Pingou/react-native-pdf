@@ -1247,7 +1247,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
             Constants.Pinch.MAXIMUM_ZOOM = this.maxScale;
 
             Configurator conf = this.fromUri(getURI(this.path))
-                .defaultPage(this.page)
+                .defaultPage(this.page < 0 ? 0 : this.page)
                 .swipeHorizontal(this.horizontal)
                 .onPageChange(this)
                 .onLoad(this)
@@ -1270,7 +1270,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 		.linkHandler(this);
 
                 if (this.singlePage)
-                    conf.pages(this.page);
+                    conf.pages(this.page < 0 ? 0 : this.page);
 
                 conf.load();
                    // .pages(this.singlePage ? 0)
@@ -1289,7 +1289,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
     // page start from 1
     public void setPage(int page) {
-
+        page = page < 0 ? 0 : page;
         this.originalPage = page;
         if (!this.singlePage)
             this.page = page;
