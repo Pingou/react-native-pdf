@@ -96,7 +96,7 @@ export default class Pdf extends Component {
         fitPolicy: 2, //fit both
         horizontal: false,
         singlePage: false,
-        page: 1,
+        page: Platform.OS === 'android' ? 0 : 1,
         enableAntialiasing: true,
         enableAnnotationRendering: true,
         enablePaging: false,

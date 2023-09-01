@@ -821,12 +821,14 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                         double endY = pageHeight * (pdfDrawing.endY / 100.0f);
 
 
-                        if (pdfDrawing.pageNb == displayedPage + 1) {
-                            startY += pageHeight + Util.getDP(getContext(), this.spacing);
-                            endY += pageHeight + Util.getDP(getContext(), this.spacing);
-                        } else if (pdfDrawing.pageNb == displayedPage - 1) {
-                            startY -= pageHeight + Util.getDP(getContext(), this.spacing);
-                            endY -= pageHeight + Util.getDP(getContext(), this.spacing);
+                        if (!this.singlePage) {
+                            if (pdfDrawing.pageNb == displayedPage + 1) {
+                                startY += pageHeight + Util.getDP(getContext(), this.spacing);
+                                endY += pageHeight + Util.getDP(getContext(), this.spacing);
+                            } else if (pdfDrawing.pageNb == displayedPage - 1) {
+                                startY -= pageHeight + Util.getDP(getContext(), this.spacing);
+                                endY -= pageHeight + Util.getDP(getContext(), this.spacing);
+                            }
                         }
 
                         /*
@@ -891,13 +893,14 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                     double endX = pageWidth * (highlightLine.endX / 100.0f) + paddingX;
                     double endY = pageHeight * (highlightLine.endY / 100.0f);
 
-                    if (highlightLine.pageNb == displayedPage + 1) {
-                        startY += pageHeight + Util.getDP(getContext(), this.spacing);
-                        endY += pageHeight + Util.getDP(getContext(), this.spacing);
-                    }
-                    else if (highlightLine.pageNb == displayedPage - 1) {
-                        startY -= pageHeight + Util.getDP(getContext(), this.spacing);
-                        endY -= pageHeight + Util.getDP(getContext(), this.spacing);
+                    if (!this.singlePage) {
+                        if (highlightLine.pageNb == displayedPage + 1) {
+                            startY += pageHeight + Util.getDP(getContext(), this.spacing);
+                            endY += pageHeight + Util.getDP(getContext(), this.spacing);
+                        } else if (highlightLine.pageNb == displayedPage - 1) {
+                            startY -= pageHeight + Util.getDP(getContext(), this.spacing);
+                            endY -= pageHeight + Util.getDP(getContext(), this.spacing);
+                        }
                     }
 
                     float size = (float)Util.getDP(getContext(), highlightLine.size) * this.getZoom();
@@ -980,13 +983,14 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                         double endX = pageWidth * (highlight.endX / 100.0f) + paddingX;
                         double endY = pageHeight * (highlight.endY / 100.0f);
 
-                        if (highlight.pageNb == displayedPage + 1) {
-                            startY += pageHeight + Util.getDP(getContext(), this.spacing);
-                            endY += pageHeight + Util.getDP(getContext(), this.spacing);
-                        }
-                        else if (highlight.pageNb == displayedPage - 1) {
-                            startY -= pageHeight + Util.getDP(getContext(), this.spacing);
-                            endY -= pageHeight + Util.getDP(getContext(), this.spacing);
+                        if (!this.singlePage) {
+                            if (highlight.pageNb == displayedPage + 1) {
+                                startY += pageHeight + Util.getDP(getContext(), this.spacing);
+                                endY += pageHeight + Util.getDP(getContext(), this.spacing);
+                            } else if (highlight.pageNb == displayedPage - 1) {
+                                startY -= pageHeight + Util.getDP(getContext(), this.spacing);
+                                endY -= pageHeight + Util.getDP(getContext(), this.spacing);
+                            }
                         }
                         paint.setColor(Color.parseColor("#55" + highlight.color.replace("#", "")));
 
@@ -1056,11 +1060,12 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                     double x = pageWidth * (pdfAnnotation.x / 100.0f) + paddingX;
                     double y = pageHeight * (pdfAnnotation.y / 100.0f);
 
-                    if (pdfAnnotation.pageNb == displayedPage + 1)
-                        y += pageHeight + Util.getDP(getContext(), this.spacing);
-                    else if (pdfAnnotation.pageNb == displayedPage - 1)
-                        y -= pageHeight + Util.getDP(getContext(), this.spacing);
-
+                    if (!this.singlePage) {
+                        if (pdfAnnotation.pageNb == displayedPage + 1)
+                            y += pageHeight + Util.getDP(getContext(), this.spacing);
+                        else if (pdfAnnotation.pageNb == displayedPage - 1)
+                            y -= pageHeight + Util.getDP(getContext(), this.spacing);
+                    }
                     //y = pageHeight + 100;
                     // draw text to the Canvas center
                     canvas.save();
@@ -1242,7 +1247,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
             Constants.Pinch.MAXIMUM_ZOOM = this.maxScale;
 
             Configurator conf = this.fromUri(getURI(this.path))
-                .defaultPage(this.page >= 1 ? this.page -1 : 0)
+                .defaultPage(this.page)
                 .swipeHorizontal(this.horizontal)
                 .onPageChange(this)
                 .onLoad(this)
@@ -1265,7 +1270,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 		.linkHandler(this);
 
                 if (this.singlePage)
-                    conf.pages(this.page >= 0 ? this.page : 0);
+                    conf.pages(this.page);
 
                 conf.load();
                    // .pages(this.singlePage ? 0)
@@ -1286,10 +1291,10 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
     public void setPage(int page) {
 
         this.originalPage = page;
-        if (this.singlePage)
+        if (!this.singlePage)
             this.page = page;
         else
-            this.page = page>1?page:1;
+            this.page = 0;
     }
 
     public void setScale(float scale) {
