@@ -180,6 +180,7 @@ CGContextRef _context;
     NSArray<NSString *> *_changedProps;
 	bool _initializing;
 	NSTimer *_timerPosition;
+    NSTimer *_timerPosition2;
     int _highlighter_page;
     int _isLandscape;
     NSMutableArray<PDFAnnotation *> *_annotationsAdded;
@@ -233,6 +234,7 @@ CGContextRef _context;
         _lastDrawingDrawnWhenPageWasAt = -42;
         
 		_timerPosition = nil;
+        _timerPosition2 = nil;
         
         _hasRestoredViewState = NO;
         _showPagesNav = NO;
@@ -1277,6 +1279,10 @@ CGContextRef _context;
 		[_timerPosition invalidate];
 		_timerPosition = nil;
 	}
+    if (_timerPosition2) {
+        [_timerPosition2 invalidate];
+        _timerPosition2 = nil;
+    }
     
 }
 
@@ -2159,7 +2165,16 @@ CGContextRef _context;
 	if (_timerPosition) {
 		[_timerPosition invalidate];
 	}
-	_timerPosition = [NSTimer scheduledTimerWithTimeInterval:0.5
+	_timerPosition = [NSTimer scheduledTimerWithTimeInterval:0.25
+									 target:self
+								   selector:@selector(sendNewPosition)
+								   userInfo:nil
+									repeats:NO];
+    
+    if (_timerPosition2) {
+        [_timerPosition2 invalidate];
+    }
+    _timerPosition2 = [NSTimer scheduledTimerWithTimeInterval:0.7
 									 target:self
 								   selector:@selector(sendNewPosition)
 								   userInfo:nil
