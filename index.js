@@ -402,6 +402,29 @@ export default class Pdf extends Component {
        
     }
 
+
+    getConvertedPointArray(pointsIn, callback) {
+
+
+        if (Platform.OS === "ios") {
+            const PdfViewManagerNative = require('react-native').NativeModules.PdfViewManager;
+             PdfViewManagerNative.getConvertedPointArray(pointsIn, (points) => {
+               // alert(JSON.stringify(points))
+                callback(points)
+            });
+        }
+        else {
+             UIManager.dispatchViewManagerCommand(
+                    findNodeHandle(this._root),
+                    UIManager.RCTPdf.Commands.getConvertedPointsArray,
+                    [pointsIn],
+                );
+        }
+    
+        
+       
+    }
+
     setHighlighterPos(isVertical, posPercent, pageNb) {
         if (Platform.OS === "ios") {
             const PdfViewManagerNative = require('react-native').NativeModules.PdfViewManager;

@@ -627,6 +627,10 @@ CGContextRef _context;
                     
                     
                 }
+                [_annotationsAdded removeAllObjects];
+                [_drawingsAdded removeAllObjects];
+                [_chartHighlightsAdded removeAllObjects];
+                [_editChartHighlightsAdded removeAllObjects];
                 
                 if (_annotations != nil && [_annotations count] > 0) {
                     for (id object in _annotations) {
@@ -1045,6 +1049,14 @@ CGContextRef _context;
     _hasAddedPreviousAndNext = YES;
 }
 
+- (void)addLineAtSpot:(long)pageNb startXPerc:(float)startXPerc startYPerc:(float)startYPerc endXPerc:(float)endXPerc endYPerc:(float)endYPerc color:(NSString *)color
+{
+    /*
+    CGContextBeginPath(context);
+    CGContextMoveToPoint(context, startX, startY);
+    CGContextAddLineToPoint(context, endX, endY);
+    CGContextStrokePath(context);*/
+}
 
 - (PDFAnnotation *)addHighlightAnnotationAtSpot:(long)pageNb startXPerc:(float)startXPerc startYPerc:(float)startYPerc endXPerc:(float)endXPerc endYPerc:(float)endYPerc color:(NSString *)color
 {
@@ -1941,7 +1953,7 @@ CGContextRef _context;
 	[self didMove];
 }
 
-
+//can only handle one page
 - (NSString *) convertPoints:(NSString *)input
 {
     NSError *e = nil;
@@ -1981,6 +1993,61 @@ CGContextRef _context;
         NSDictionary *obj = [NSDictionary dictionaryWithObjectsAndKeys:
                              [NSNumber numberWithFloat:convertedPoint.x], @"x",
                              [NSNumber numberWithFloat:convertedPoint.y], @"y",
+        nil];
+
+        
+
+        [outputArray addObject:obj]; // Works with NSMutableArray
+        
+    }
+    
+
+    NSDictionary *dict = @{ @"pageNb" : [NSNumber numberWithInt:page], @"points" : outputArray};
+    NSData *jsonDataOut = [NSJSONSerialization dataWithJSONObject:dict options:0 error:&e];
+    NSString *jsonStringOut = [[NSString alloc] initWithData:jsonDataOut encoding:NSUTF8StringEncoding];
+
+    NSLog(@"xcode output: %@", jsonStringOut);
+    return jsonStringOut;
+}
+
+
+//can handle points on different pages
+- (NSString *) convertPointArray:(NSString *)input
+{
+    NSError *e = nil;
+    NSData *data = [input dataUsingEncoding:NSUTF8StringEncoding];
+    NSDictionary *jsonData = [NSJSONSerialization JSONObjectWithData: data options: NSJSONReadingMutableContainers error: &e];
+
+    NSArray* pointsArray = [jsonData objectForKey:@"points"];
+    
+    NSMutableArray *outputArray = [@[] mutableCopy];
+    
+    NSLog(@"xcode input: %@", input);
+    unsigned long page = 0;
+    
+
+    
+    
+    
+    for (id object in pointsArray) {
+        float x = [[object objectForKey:@"x"] floatValue];
+        float y = [[object objectForKey:@"y"] floatValue];
+
+        PDFPage *pdfPage = [_pdfView pageForPoint:CGPointMake(x, y) nearest:YES];
+        page = [_pdfDocument indexForPage:pdfPage];
+        
+        CGPoint point = CGPointMake(x, y);
+        
+    
+        CGPoint convertedPoint = [self convertPointToPercent:point pdfPage:pdfPage];
+        CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxMediaBox];
+        
+        NSDictionary *obj = [NSDictionary dictionaryWithObjectsAndKeys:
+                             [NSNumber numberWithFloat:convertedPoint.x], @"x",
+                             [NSNumber numberWithFloat:convertedPoint.y], @"y",
+                             [NSNumber numberWithInt:page], @"pageNb",
+                             [NSNumber numberWithInt:pdfPageRect.size.width], @"pageWidth",
+                             [NSNumber numberWithInt:pdfPageRect.size.height], @"pageHeight",
         nil];
 
         
@@ -2175,10 +2242,10 @@ CGContextRef _context;
         [_timerPosition2 invalidate];
     }
     _timerPosition2 = [NSTimer scheduledTimerWithTimeInterval:0.7
-									 target:self
-								   selector:@selector(sendNewPosition)
-								   userInfo:nil
-									repeats:NO];
+                                     target:self
+                                   selector:@selector(sendNewPosition)
+                                   userInfo:nil
+                                    repeats:NO];
 	
 	
 	

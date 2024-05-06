@@ -47,6 +47,7 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface RCTPdfView : UIView <UIGestureRecognizer
 @property(nonatomic, copy) RCTBubblingEventBlock onChange;
 
 - (NSString *) convertPoints:(NSString *)data;
+- (NSString *) convertPointArray:(NSString *)data;
 - (void) setHighlighterPos:(int)isVertical :(float)positionPercent :(int)pageNb;
 @end
 

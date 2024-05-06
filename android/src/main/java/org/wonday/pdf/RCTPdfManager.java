@@ -51,7 +51,10 @@ public class RCTPdfManager extends SimpleViewManager<PdfView> {
     private Context context;
     private PdfView pdfView;
     public static final int COMMAND_CONVERT_POINTS = 9549211;
+
     public static final int COMMAND_SET_HIGHLIGHTER_POS = 9549212;
+
+    public static final int COMMAND_CONVERT_POINTS_ARRAY = 9549213;
 
     public RCTPdfManager(ReactApplicationContext reactContext){
         this.context = reactContext;
@@ -83,6 +86,7 @@ public class RCTPdfManager extends SimpleViewManager<PdfView> {
 
         HashMap map = new HashMap<String, Integer>();
         map.put("getConvertedPoints", COMMAND_CONVERT_POINTS);
+        map.put("getConvertedPointsArray", COMMAND_CONVERT_POINTS_ARRAY);
         map.put("setHighlighterPos", COMMAND_SET_HIGHLIGHTER_POS);
 
         return map;
@@ -102,6 +106,10 @@ public class RCTPdfManager extends SimpleViewManager<PdfView> {
         switch (commandType) {
             case COMMAND_CONVERT_POINTS: {
                 view.convertPoints(args.getString(0));
+                return;
+            }
+            case COMMAND_CONVERT_POINTS_ARRAY: {
+                view.convertPointsArray(args.getString(0));
                 return;
             }
             case COMMAND_SET_HIGHLIGHTER_POS: {

@@ -419,6 +419,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
     }
 
+    //can only handle one page
     public void convertPoints(String stringInput) {
         Gson gson = new Gson();
 
@@ -469,6 +470,63 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                 event
         );
        // return mainObjOut.getAsString();
+    }
+
+    //can handle several pages
+    public void convertPointsArray(String stringInput) {
+
+        JsonParser parser = new JsonParser();
+        JsonObject rootObj = parser.parse(stringInput).getAsJsonObject();
+        JsonArray array = rootObj.getAsJsonArray("points");
+
+        //ArrayList<HashMap<String, Float>> listOut = new ArrayList<HashMap<String, Float>>();
+
+        JsonObject mainObjOut = new JsonObject();
+        JsonArray pointArrayOut = new JsonArray();
+
+        int pageNb = instance.getCurrentPage();
+        for (JsonElement elem : array) {
+            JsonObject obj = elem.getAsJsonObject();
+            float x = Util.getDP(getContext(), (int)obj.get("x").getAsFloat());
+            float y = Util.getDP(getContext(), (int)obj.get("y").getAsFloat());
+
+            MyCoordinate coordinate = getPercentPosForPage(x, y, pageNb);
+
+            if (coordinate.y > 100) {
+                pageNb += 1;
+                coordinate = getPercentPosForPage(x, y, pageNb);
+            }
+            else if (coordinate.y < 0) {
+                pageNb -= 1;
+                coordinate = getPercentPosForPage(x, y, pageNb);
+            }
+
+            SizeF dim = getPageSize(pageNb);
+            JsonObject pointOut = new JsonObject();
+
+            pointOut.addProperty("x", coordinate.x);
+            pointOut.addProperty("y", coordinate.y);
+            pointOut.addProperty("pageNb", pageNb);
+            pointOut.addProperty("pageWidth", dim.getWidth());
+            pointOut.addProperty("pageHeight", dim.getHeight());
+            pointArrayOut.add(pointOut);
+        }
+        mainObjOut.add("points", pointArrayOut);
+        mainObjOut.addProperty("pageNb", pageNb);
+
+
+        String out = mainObjOut.toString();
+
+        Log.d("points out", " " + out);
+        WritableMap event = Arguments.createMap();
+        event.putString("message", "pointsConverted|"+ out);
+        ReactContext reactContext = (ReactContext)this.getContext();
+        reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(
+                this.getId(),
+                "topChange",
+                event
+        );
+
     }
 
     public MyCoordinate convertPoint(float x, float y) {

@@ -80,6 +80,15 @@ RCT_EXPORT_METHOD(getConvertedPoints:(NSString *)input :(RCTResponseSenderBlock)
     */
 }
 
+//can handle points on different pages
+RCT_EXPORT_METHOD(getConvertedPointArray:(NSString *)input :(RCTResponseSenderBlock)callback)
+{
+
+    NSString *output = [RctpdfView convertPointArray:input];
+    callback(@[output]);
+  
+}
+
 
 RCT_EXPORT_METHOD(setHighlighterPos:(int)isVertical :(float)positionPercent :(int)pageNb)
 {
