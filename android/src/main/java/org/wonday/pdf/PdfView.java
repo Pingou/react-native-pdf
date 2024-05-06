@@ -472,6 +472,9 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
        // return mainObjOut.getAsString();
     }
 
+    public float getDP(Context context, float dp) {
+        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, context.getResources().getDisplayMetrics());
+    }
     //can handle several pages
     public void convertPointsArray(String stringInput) {
 
@@ -487,16 +490,16 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
         int pageNb = instance.getCurrentPage();
         for (JsonElement elem : array) {
             JsonObject obj = elem.getAsJsonObject();
-            float x = Util.getDP(getContext(), (int)obj.get("x").getAsFloat());
-            float y = Util.getDP(getContext(), (int)obj.get("y").getAsFloat());
+            float x = getDP(getContext(), obj.get("x").getAsFloat());
+            float y = getDP(getContext(), obj.get("y").getAsFloat());
 
             MyCoordinate coordinate = getPercentPosForPage(x, y, pageNb);
 
-            if (coordinate.y > 100) {
+            if (coordinate.y > 100 && pageNb < this.totalNumberOfPages - 1) {
                 pageNb += 1;
                 coordinate = getPercentPosForPage(x, y, pageNb);
             }
-            else if (coordinate.y < 0) {
+            else if (pageNb > 0 && coordinate.y < 0) {
                 pageNb -= 1;
                 coordinate = getPercentPosForPage(x, y, pageNb);
             }
