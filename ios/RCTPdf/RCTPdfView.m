@@ -746,8 +746,6 @@ CGContextRef _context;
                         
                         NSString *path = [object objectForKey:@"imgPath"];
                         
-                        if (pageNb > _page + 2 || pageNb < _page - 2)
-                            continue;
                       
                         pdfPage = [_pdfDocument pageAtIndex:pageNb];
                         CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxMediaBox];
@@ -878,6 +876,10 @@ CGContextRef _context;
                         annotation.backgroundColor = UIColor.redColor;
                          annotation.color = [UIColor colorWithRed:213.0/255.0 green:41.0/255.0 blue:65.0/255.0 alpha:0];
                                                 // annotation.iconType = kPDFTextAnnotationIconNote;
+                        
+                        if (pageNb > _page + 2 || pageNb < _page - 2)
+                            annotation.shouldDisplay = NO;
+                        
                         [annotationPage addAnnotation:annotation];
                         
                         [_drawingsAdded addObject:annotation];
@@ -1437,6 +1439,13 @@ CGContextRef _context;
     return jsonString;
     
 }
+/*
+- (void)pdfViewWillLayoutSubviews:(PDFView *)pdfView {
+    for (PDFAnnotation *annotation in _drawingsAdded) {
+        [annotation.page removeAnnotation:annotation];
+        [annotation.page addAnnotation:annotation];
+    }
+}*/
 
 - (void)onPageChanged:(NSNotification *)noti
 {
@@ -1447,6 +1456,23 @@ CGContextRef _context;
         unsigned long numberOfPages = _pdfDocument.pageCount;
 
         _onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"pageChanged|%lu|%lu", page+1, numberOfPages]]});
+        //iterate drawings added, hide the ones 1 pages off and show the ones on the current page, previous page and next page
+        for (PDFAnnotation *object in _drawingsAdded) {
+            if (page - 1 == [_pdfDocument indexForPage:object.page] || page == [_pdfDocument indexForPage:object.page] || page + 1 == [_pdfDocument indexForPage:object.page]) {
+                
+                //add annotation
+                //PDFPage *page = [_pdfDocument pageAtIndex:object.page];
+                //[page addAnnotation:object];
+
+                object.shouldDisplay = YES;
+                //object.
+            }
+            else {
+                //PDFPage *page = [_pdfDocument pageAtIndex:object.page];
+                //[page removeAnnotation:object];
+                object.shouldDisplay = NO;
+            }
+        }
     }
     
 }
