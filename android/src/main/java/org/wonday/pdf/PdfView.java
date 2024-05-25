@@ -877,12 +877,19 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                         float drawingPageWidth = pageWidth;
                         float drawingPageHeight = pageHeight;
 
+                        if (pdfDrawing.pageNb != displayedPage) {
+                            //check if same format
+                            SizeF displayedPageRec = instance.getPageSize(displayedPage);
                         SizeF rec = instance.getPageSize(pdfDrawing.pageNb);
-                        if (rec != null && rec.getWidth() > 0) {
-                            drawingPageWidth = rec.getWidth();
-                        }
-                        if (rec != null && rec.getHeight() > 0) {
-                            drawingPageHeight = rec.getHeight();
+
+                           // if (Math.round((displayedPageRec.getWidth() * 100) / (displayedPageRec.getHeight() * 100)) != Math.round((rec.getWidth() * 100) / (rec.getHeight() * 100))) {
+                            //    drawingPageWidth = pageWidth * (displayedPageRec.getWidth() / rec.getWidth());
+                            //    drawingPageHeight = pageHeight * (displayedPageRec.getHeight() / rec.getHeight());
+
+                            drawingPageWidth = pageWidth * (rec.getWidth() / displayedPageRec.getWidth() );
+                            drawingPageHeight = pageHeight * (rec.getHeight() / displayedPageRec.getHeight());
+
+                            // }
                         }
 
 
