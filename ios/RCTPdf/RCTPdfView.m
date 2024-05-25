@@ -2068,12 +2068,20 @@ CGContextRef _context;
         CGPoint convertedPoint = [self convertPointToPercent:point pdfPage:pdfPage];
         CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxMediaBox];
         
+        int pageWidth = pdfPageRect.size.width;
+        int pageHeight = pdfPageRect.size.height;
+        if (pdfPage.rotation == 90 || pdfPage.rotation == 270)
+        {
+            pageWidth = pdfPageRect.size.height;
+            pageHeight =pdfPageRect.size.width;
+        }
+        
         NSDictionary *obj = [NSDictionary dictionaryWithObjectsAndKeys:
                              [NSNumber numberWithFloat:convertedPoint.x], @"x",
                              [NSNumber numberWithFloat:convertedPoint.y], @"y",
                              [NSNumber numberWithInt:page], @"pageNb",
-                             [NSNumber numberWithInt:pdfPageRect.size.width], @"pageWidth",
-                             [NSNumber numberWithInt:pdfPageRect.size.height], @"pageHeight",
+                             [NSNumber numberWithInt:pageWidth], @"pageWidth",
+                             [NSNumber numberWithInt:pageHeight], @"pageHeight",
         nil];
 
         

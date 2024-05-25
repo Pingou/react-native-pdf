@@ -867,19 +867,32 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                         float paddingX = 0.0f;
                         try {
                             if (instance.isSwipeVertical()) {
-                                paddingX = instance.getSecondaryPageOffset(displayedPage, this.getZoom());
+                                paddingX = instance.getSecondaryPageOffset(pdfDrawing.pageNb, this.getZoom());
                             } else {
-                                paddingX = instance.getPageOffset(displayedPage, this.getZoom());
+                                paddingX = instance.getPageOffset(pdfDrawing.pageNb, this.getZoom());
                             }
                         } catch (Exception e) {
 
                         }
+                        float drawingPageWidth = pageWidth;
+                        float drawingPageHeight = pageHeight;
+
+                        SizeF rec = instance.getPageSize(pdfDrawing.pageNb);
+                        if (rec != null && rec.getWidth() > 0) {
+                            drawingPageWidth = rec.getWidth();
+                        }
+                        if (rec != null && rec.getHeight() > 0) {
+                            drawingPageHeight = rec.getHeight();
+                        }
 
 
-                        double startX = pageWidth * (pdfDrawing.startX / 100.0f) + paddingX;
-                        double startY = pageHeight * (pdfDrawing.startY / 100.0f);
-                        double endX = pageWidth * (pdfDrawing.endX / 100.0f) + paddingX;
-                        double endY = pageHeight * (pdfDrawing.endY / 100.0f);
+
+
+
+                        double startX = drawingPageWidth * (pdfDrawing.startX / 100.0f) + paddingX;
+                        double startY = drawingPageHeight * (pdfDrawing.startY / 100.0f);
+                        double endX = drawingPageWidth * (pdfDrawing.endX / 100.0f) + paddingX;
+                        double endY = drawingPageHeight * (pdfDrawing.endY / 100.0f);
 
 
                         if (!this.singlePage) {
