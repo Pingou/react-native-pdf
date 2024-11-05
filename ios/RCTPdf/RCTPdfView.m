@@ -89,6 +89,7 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 @interface ClickableZone : NSObject
     @property(strong) NSString *action;
     @property(strong) NSString *param;
+    @property() long pageNb;
     @property (nonatomic, assign) CGRect bounds;
 @end
 
@@ -202,7 +203,7 @@ CGContextRef _context;
     NSString *_chartEnd;
     PDFAnnotation* _annotationChartStart;
     PDFAnnotation* _annotationChartEnd;
-    
+    int _totalPageNb;
 }
 
 
@@ -258,6 +259,7 @@ CGContextRef _context;
         _changedProps = NULL;
 		_initializing = NO;
         _isLandscape = 0;
+        _totalPageNb = 0;
         
         _horizontalHighlightPosPercent = -42.0f;
         _verticalHighlightPosPercent = -42.0f;
@@ -598,10 +600,10 @@ CGContextRef _context;
                 
                 _pdfView.scaleFactor = _fixScaleFactor*_scale;
                 
-                int totalPageNb = [_pdfDocument pageCount];
+                _totalPageNb = [_pdfDocument pageCount];
                 
                 int iter = 0;
-                while (iter < totalPageNb) {
+                while (iter < _totalPageNb) {
                     
                     PDFPage *annotationPage = [_pdfDocument pageAtIndex:iter];
                     
@@ -1185,6 +1187,7 @@ CGContextRef _context;
         clickableZone.action = action;
         clickableZone.param = actionParam;
         clickableZone.bounds = targetRect;
+        clickableZone.pageNb = pageNb;
         [_clickableZonesAdded addObject:clickableZone];
         
     }
@@ -1529,15 +1532,36 @@ CGContextRef _context;
 
 - (void)checkIfClickableTouched:(UITapGestureRecognizer *)sender
 {
+    CGPoint point = [sender locationInView:self];
+    CGPoint pointPageBefore = [sender locationInView:self];
+    CGPoint pointPageAfter = [sender locationInView:self];
+    PDFPage *pdfPageBefore = nil;
+    if (_page > 1) {
+        pdfPageBefore = [_pdfDocument pageAtIndex:_page - 1];
+        pointPageBefore = [_pdfView convertPoint:point toPage:pdfPageBefore];
+    }
+    PDFPage *pdfPageAfter = nil;
+    if (_page < _totalPageNb + 1) {
+        pdfPageAfter = [_pdfDocument pageAtIndex:_page];
+        pointPageAfter = [_pdfView convertPoint:point toPage:pdfPageAfter];
+    }
+    
     PDFPage *pdfPage = [_pdfDocument pageAtIndex:_page - 1];
     
-    CGPoint point = [sender locationInView:self];
+   
     point = [_pdfView convertPoint:point toPage:pdfPage];
+    
+    
     for (ClickableZone *object in _clickableZonesAdded) {
         
  
-        if (point.x > object.bounds.origin.x && point.x < object.bounds.origin.x + object.bounds.size.width
-            && point.y > object.bounds.origin.y && point.y < object.bounds.origin.y + object.bounds.size.height) {
+        if ((_page - 1 == object.pageNb && point.x > object.bounds.origin.x && point.x < object.bounds.origin.x + object.bounds.size.width
+            && point.y > object.bounds.origin.y && point.y < object.bounds.origin.y + object.bounds.size.height) ||
+            (pdfPageBefore && _page - 2 == object.pageNb && pointPageBefore.x > object.bounds.origin.x && pointPageBefore.x < object.bounds.origin.x + object.bounds.size.width
+                && pointPageBefore.y > object.bounds.origin.y && pointPageBefore.y < object.bounds.origin.y + object.bounds.size.height) ||
+            (pdfPageAfter && _page == object.pageNb && pointPageAfter.x > object.bounds.origin.x && pointPageBefore.x < object.bounds.origin.x + object.bounds.size.width
+                && pointPageAfter.y > object.bounds.origin.y && pointPageAfter.y < object.bounds.origin.y + object.bounds.size.height)
+            ) {
             NSLog(@"Annotation hit");
             if ([object.action isEqualToString:@"next"]) {
                 _onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"onSwitchPage|%d", _page + 1]]});
