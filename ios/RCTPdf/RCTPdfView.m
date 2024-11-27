@@ -1532,21 +1532,23 @@ CGContextRef _context;
 
 - (void)checkIfClickableTouched:(UITapGestureRecognizer *)sender
 {
+    
+    unsigned long pageNb = [_pdfDocument indexForPage:_pdfView.currentPage];
     CGPoint point = [sender locationInView:self];
     CGPoint pointPageBefore = [sender locationInView:self];
     CGPoint pointPageAfter = [sender locationInView:self];
     PDFPage *pdfPageBefore = nil;
-    if (_page > 1) {
-        pdfPageBefore = [_pdfDocument pageAtIndex:_page - 1];
+    if (pageNb > 1) {
+        pdfPageBefore = [_pdfDocument pageAtIndex:pageNb - 1];
         pointPageBefore = [_pdfView convertPoint:point toPage:pdfPageBefore];
     }
     PDFPage *pdfPageAfter = nil;
-    if (_page < _totalPageNb + 1) {
-        pdfPageAfter = [_pdfDocument pageAtIndex:_page];
+    if (pageNb < _totalPageNb + 1) {
+        pdfPageAfter = [_pdfDocument pageAtIndex:pageNb + 1];
         pointPageAfter = [_pdfView convertPoint:point toPage:pdfPageAfter];
     }
     
-    PDFPage *pdfPage = [_pdfDocument pageAtIndex:_page - 1];
+    PDFPage *pdfPage = _pdfView.currentPage;
     
    
     point = [_pdfView convertPoint:point toPage:pdfPage];
@@ -1555,11 +1557,11 @@ CGContextRef _context;
     for (ClickableZone *object in _clickableZonesAdded) {
         
  
-        if ((_page - 1 == object.pageNb && point.x > object.bounds.origin.x && point.x < object.bounds.origin.x + object.bounds.size.width
+        if ((pageNb == object.pageNb && point.x > object.bounds.origin.x && point.x < object.bounds.origin.x + object.bounds.size.width
             && point.y > object.bounds.origin.y && point.y < object.bounds.origin.y + object.bounds.size.height) ||
-            (pdfPageBefore && _page - 2 == object.pageNb && pointPageBefore.x > object.bounds.origin.x && pointPageBefore.x < object.bounds.origin.x + object.bounds.size.width
+            (pdfPageBefore && pageNb - 1 == object.pageNb && pointPageBefore.x > object.bounds.origin.x && pointPageBefore.x < object.bounds.origin.x + object.bounds.size.width
                 && pointPageBefore.y > object.bounds.origin.y && pointPageBefore.y < object.bounds.origin.y + object.bounds.size.height) ||
-            (pdfPageAfter && _page == object.pageNb && pointPageAfter.x > object.bounds.origin.x && pointPageBefore.x < object.bounds.origin.x + object.bounds.size.width
+            (pdfPageAfter && pageNb + 1 == object.pageNb && pointPageAfter.x > object.bounds.origin.x && pointPageAfter.x < object.bounds.origin.x + object.bounds.size.width
                 && pointPageAfter.y > object.bounds.origin.y && pointPageAfter.y < object.bounds.origin.y + object.bounds.size.height)
             ) {
             NSLog(@"Annotation hit");
