@@ -46,6 +46,20 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface MyPDFView: PDFView {
 
 @implementation MyPDFView
 
+
+- (void)setScrollsToTop:(BOOL)scrollsToTop {
+    for (UIView *subview in self.subviews) {
+        if ([subview isKindOfClass:[UIScrollView class]]) {
+            [(UIScrollView *)subview setScrollsToTop:NO];
+        }
+    }
+}
+
+- (void)didMoveToWindow {
+    [super didMoveToWindow];
+    [self setScrollsToTop:NO];
+}
+
 - (void)addGestureRecognizer:(UIGestureRecognizer *)gestureRecognizer
 {
     if ([gestureRecognizer isKindOfClass:[UITapGestureRecognizer class]])
