@@ -46,6 +46,7 @@ RCT_EXPORT_VIEW_PROPERTY(onChange, RCTBubblingEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(restoreViewState, NSString);
 RCT_EXPORT_VIEW_PROPERTY(annotations, NSArray);
 RCT_EXPORT_VIEW_PROPERTY(drawings, NSArray);
+RCT_EXPORT_VIEW_PROPERTY(drawingsV2, NSArray);
 RCT_EXPORT_VIEW_PROPERTY(highlightLines, NSArray);
 RCT_EXPORT_VIEW_PROPERTY(enableDarkMode, BOOL);
 RCT_EXPORT_VIEW_PROPERTY(showPagesNav, BOOL);
@@ -87,6 +88,12 @@ RCT_EXPORT_METHOD(getConvertedPointArray:(NSString *)input :(RCTResponseSenderBl
     NSString *output = [RctpdfView convertPointArray:input];
     callback(@[output]);
   
+}
+
+//can handle points on different pages
+RCT_EXPORT_METHOD(setDrawingsDynamically:(NSArray *)drawings)
+{
+    [RctpdfView setDrawingsDynamically:drawings];
 }
 
 

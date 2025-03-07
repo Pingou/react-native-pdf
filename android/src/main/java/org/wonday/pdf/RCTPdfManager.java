@@ -56,6 +56,8 @@ public class RCTPdfManager extends SimpleViewManager<PdfView> {
 
     public static final int COMMAND_CONVERT_POINTS_ARRAY = 9549213;
 
+    public static final int COMMAND_SET_DRAWINGS_DYNAMICALLY = 9549214;
+
     public RCTPdfManager(ReactApplicationContext reactContext){
         this.context = reactContext;
     }
@@ -88,6 +90,7 @@ public class RCTPdfManager extends SimpleViewManager<PdfView> {
         map.put("getConvertedPoints", COMMAND_CONVERT_POINTS);
         map.put("getConvertedPointsArray", COMMAND_CONVERT_POINTS_ARRAY);
         map.put("setHighlighterPos", COMMAND_SET_HIGHLIGHTER_POS);
+        map.put("setDrawingsDynamically", COMMAND_SET_DRAWINGS_DYNAMICALLY);
 
         return map;
         //Log.d("React"," View manager getCommandsMap:");
@@ -114,6 +117,10 @@ public class RCTPdfManager extends SimpleViewManager<PdfView> {
             }
             case COMMAND_SET_HIGHLIGHTER_POS: {
                 view.setHighlighterPos(args.getInt(0), (float)args.getDouble(1), args.getInt(2));
+                return;
+            }
+            case COMMAND_SET_DRAWINGS_DYNAMICALLY: {
+                view.setDrawingsDynamically(args.getArray(0));
                 return;
             }
 
@@ -293,6 +300,21 @@ public class RCTPdfManager extends SimpleViewManager<PdfView> {
 
                 PdfView.PdfDrawing newDrawing = new PdfView.PdfDrawing(obj.getDouble("startX"), obj.getDouble("startY"),
                         obj.getDouble("endX"), obj.getDouble("endY"), obj.getInt("pageNb"), obj.getString("imgPath"));
+                newList.add(newDrawing);
+            }
+        }
+        pdfView.setDrawings(newList);
+
+    }
+    @ReactProp(name = "drawingsV2")
+    public void setDrawingsV2(PdfView pdfView, ReadableArray drawings) {
+
+        List<PdfView.PdfDrawing> newList = new ArrayList<>();
+        if (drawings != null) {
+            for (int i = 0; i < drawings.size(); i++) {
+                ReadableMap obj = drawings.getMap(i);
+
+                PdfView.PdfDrawing newDrawing = new PdfView.PdfDrawing(obj.getInt("pageNb"), obj.getString("imgPath"));
                 newList.add(newDrawing);
             }
         }

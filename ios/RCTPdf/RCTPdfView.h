@@ -37,6 +37,7 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface RCTPdfView : UIView <UIGestureRecognizer
 @property(nonatomic) NSString *restoreViewState;
 @property(nonatomic) NSArray *annotations;
 @property(nonatomic) NSArray *drawings;
+@property(nonatomic) NSArray *drawingsV2;
 @property(nonatomic) NSArray *highlightLines;
 @property(nonatomic) NSString *chartStart;
 @property(nonatomic) NSString *chartEnd;
@@ -48,6 +49,7 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface RCTPdfView : UIView <UIGestureRecognizer
 
 - (NSString *) convertPoints:(NSString *)data;
 - (NSString *) convertPointArray:(NSString *)data;
+- (void) setDrawingsDynamically:(NSArray *)drawings;
 - (void) setHighlighterPos:(int)isVertical :(float)positionPercent :(int)pageNb;
 @end
 

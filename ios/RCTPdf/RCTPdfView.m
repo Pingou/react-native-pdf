@@ -11,6 +11,7 @@
 #import <Foundation/Foundation.h>
 #import <QuartzCore/QuartzCore.h>
 #import <PDFKit/PDFKit.h>
+#import "SVGKit.h"
 
 #if __has_include(<React/RCTAssert.h>)
 #import <React/RCTBridgeModule.h>
@@ -200,6 +201,7 @@ CGContextRef _context;
     int _isLandscape;
     NSMutableArray<PDFAnnotation *> *_annotationsAdded;
     NSMutableArray<PDFImageAnnotation *> *_drawingsAdded;
+    NSMutableArray<PDFImageAnnotation *> *_drawingsV2Added;
     NSMutableArray<PDFAnnotation *> *_chartHighlightsAdded;
     NSMutableArray<PDFAnnotation *> *_editChartHighlightsAdded;
     NSMutableArray<ClickableZone *> *_clickableZonesAdded;
@@ -244,6 +246,7 @@ CGContextRef _context;
 		_restoreViewState = @"";
 		_annotations = nil;
         _drawings = nil;
+        _drawingsV2 = nil;
         _highlightLines = nil;
         _highlighter_page = 0;
         _lastDrawingDrawnWhenPageWasAt = -42;
@@ -282,6 +285,7 @@ CGContextRef _context;
         
         _annotationsAdded = [[NSMutableArray alloc] init];
         _drawingsAdded = [[NSMutableArray alloc] init];
+        _drawingsV2Added = [[NSMutableArray alloc] init];
         _chartHighlightsAdded = [[NSMutableArray alloc] init];
         _clickableZonesAdded = [[NSMutableArray alloc] init];
         _editChartHighlightsAdded = [[NSMutableArray alloc] init];
@@ -540,7 +544,7 @@ CGContextRef _context;
        
        // [_pdfView setLayoutMargins:UIEdgeInsetsMake(0, 0, 100, 0)];
                              
-        if (_pdfDocument && ([changedProps containsObject:@"path"] || [changedProps containsObject:@"enablePaging"] || [changedProps containsObject:@"horizontal"] || [changedProps containsObject:@"page"] || [changedProps containsObject:@"restoreViewState"] || [changedProps containsObject:@"annotations"] || [changedProps containsObject:@"highlightLines"] || [changedProps containsObject:@"drawings"])) {
+        if (_pdfDocument && ([changedProps containsObject:@"path"] || [changedProps containsObject:@"enablePaging"] || [changedProps containsObject:@"horizontal"] || [changedProps containsObject:@"page"] || [changedProps containsObject:@"restoreViewState"] || [changedProps containsObject:@"annotations"] || [changedProps containsObject:@"highlightLines"] || [changedProps containsObject:@"drawings"] || [changedProps containsObject:@"drawingsV2"])) {
 			
             
             PDFPage *pdfPage = nil;
@@ -596,7 +600,7 @@ CGContextRef _context;
         }
         
         
-        if (_pdfDocument && ([changedProps containsObject:@"annotations"] || [changedProps containsObject:@"highlightLines"] || [changedProps containsObject:@"drawings"] || [changedProps containsObject:@"chartHighlights"]  || _lastDrawingDrawnWhenPageWasAt != _page)) {
+        if (_pdfDocument && ([changedProps containsObject:@"annotations"] || [changedProps containsObject:@"highlightLines"] || [changedProps containsObject:@"drawings"] || [changedProps containsObject:@"drawingsV2"] || [changedProps containsObject:@"chartHighlights"]  || _lastDrawingDrawnWhenPageWasAt != _page)) {
             
             
             _lastDrawingDrawnWhenPageWasAt = _page;
@@ -632,6 +636,10 @@ CGContextRef _context;
                         [annotationPage removeAnnotation:object];
                     }
                     
+                    for (id object in _drawingsV2Added) {
+                        [annotationPage removeAnnotation:object];
+                    }
+                    
                     for (id object in _chartHighlightsAdded) {
                         [annotationPage removeAnnotation:object];
                     }
@@ -645,6 +653,7 @@ CGContextRef _context;
                 }
                 [_annotationsAdded removeAllObjects];
                 [_drawingsAdded removeAllObjects];
+                [_drawingsV2Added removeAllObjects];
                 [_chartHighlightsAdded removeAllObjects];
                 [_editChartHighlightsAdded removeAllObjects];
                 
@@ -863,7 +872,9 @@ CGContextRef _context;
                             targetRect = CGRectMake( startX, endY, width + offsetX, height + offsetY);
                        // }
                         
-                       
+                     
+
+                        
                         UIImage *image = [UIImage imageWithContentsOfFile:path];
                         
                         if (pdfPage.rotation == 90) {
@@ -904,6 +915,13 @@ CGContextRef _context;
                         
                     }
                     
+                
+                }
+                
+                
+                if (_drawingsV2 != nil && [_drawingsV2 count] > 0) {
+                    
+                    [self addDrawingsV2ToView];
                 
                 }
                 if (_chartHighlights != nil && [_chartHighlights count] > 0) {
@@ -1065,6 +1083,164 @@ CGContextRef _context;
     [self addImgAnnotationAtSpot:pageNb xPerc:60.0 yPerc:-4.0 image:previous_icon imgSizeMultiplier:1.0 action:@"previous" actionParam:nil alpha:1.0];
     [self addImgAnnotationAtSpot:pageNb xPerc:40.0 yPerc:-4.0 image:next_icon imgSizeMultiplier:1.0 action:@"next" actionParam:nil alpha:1.0];
     _hasAddedPreviousAndNext = YES;
+}
+
+- (void)addDrawingsV2ToView
+{
+    PDFPage *pdfPage = nil;
+    if (_page == -1)
+        pdfPage = [_pdfDocument pageAtIndex:0];
+    else
+        pdfPage = [_pdfDocument pageAtIndex:_page - 1];
+    
+    for (id object in _drawingsV2) {
+        // do something with object
+        
+        
+        float xPercStart = 0.0f;
+        float yPercStart = 0.0f;
+        
+        float xPercEnd = 100.0f;
+        float yPercEnd = 100.0f;
+        
+        long pageNb = [[object objectForKey:@"pageNb"] integerValue];
+        
+        NSString *path = [object objectForKey:@"imgPath"];
+        
+      
+        pdfPage = [_pdfDocument pageAtIndex:pageNb];
+        CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxMediaBox];
+        
+        
+        float startX = 0;
+        float startY = 0;
+        
+        float endX = 0;
+        float endY = 0;
+        
+        
+        float width;
+        float height;
+        float offsetX;
+        float offsetY;
+        
+        
+        if (pdfPage.rotation == 90) {
+            float tmp = xPercStart;
+            xPercStart = yPercStart;
+            yPercStart = 100 - tmp;
+            tmp = xPercEnd;
+            xPercEnd = yPercEnd;
+            yPercEnd = 100 - tmp;
+            
+            tmp = yPercStart;
+            yPercStart = yPercEnd;
+            yPercEnd = tmp;
+        }
+        else if (pdfPage.rotation == 270) {
+            float tmp = xPercStart;
+            xPercStart = 100 - yPercStart;
+            yPercStart = tmp;
+            tmp = xPercEnd;
+            xPercEnd = 100 - yPercEnd;
+            yPercEnd = tmp;
+            
+            tmp = xPercStart;
+            xPercStart = xPercEnd;
+            xPercEnd = tmp;
+            
+        }
+ 
+            startX = (pdfPageRect.size.width * xPercStart / 100);
+            startY = (pdfPageRect.size.height) - (pdfPageRect.size.height * (yPercStart/ 100));
+                                        
+            endX = pdfPageRect.size.width * xPercEnd / 100;
+            endY = (pdfPageRect.size.height) - ((pdfPageRect.size.height) * (yPercEnd / 100));
+            
+            width = endX - startX;
+            height = startY - endY;
+            offsetX = pdfPageRect.origin.x;
+            offsetY = pdfPageRect.origin.y;
+       // }
+       
+       
+        
+        CGRect targetRect;
+      /*  if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
+            targetRect = CGRectMake(y - (height - 10), x - 5, width, height);
+        }
+        else {*/
+            targetRect = CGRectMake( startX, endY, width + offsetX, height + offsetY);
+  
+
+        SVGKImage *svgImage = [[SVGKImage alloc] initWithContentsOfFile:path];
+        UIImage *image = svgImage.UIImage;//[UIImage imageWithContentsOfFile:newPath];
+        
+        if (pdfPage.rotation == 90) {
+            image = [UIImage imageWithCGImage:image.CGImage
+                                                    scale:image.scale
+                                              orientation:UIImageOrientationLeft];
+        }
+        else if (pdfPage.rotation == 270) {
+            image = [UIImage imageWithCGImage:image.CGImage
+                                                    scale:image.scale
+                                              orientation:UIImageOrientationRight];
+        }
+        else {
+            //image = [UIImage imageWithCGImage:image.CGImage
+            //                                        scale:image.scale
+              //                                orientation:UIImageOrientationDownMirrored];
+        }
+       
+        PDFPage *annotationPage = [_pdfDocument pageAtIndex:pageNb];
+        PDFImageAnnotation* annotation = [[PDFImageAnnotation alloc] initWithPicture:image bounds:targetRect offsetX:offsetX offsetY:offsetY];
+      //  annotation.backgroundColor = UIColor.redColor;
+      //   annotation.color = [UIColor colorWithRed:213.0/255.0 green:41.0/255.0 blue:65.0/255.0 alpha:0];
+                                // annotation.iconType = kPDFTextAnnotationIconNote;
+        
+       // if (pageNb > _page + 2 || pageNb < _page - 2)
+         //   annotation.shouldDisplay = NO;
+        annotation.shouldDisplay = YES;
+        [annotationPage addAnnotation:annotation];
+        
+        [_drawingsV2Added addObject:annotation];
+        
+      
+        
+    }
+
+}
+
+- (void)setDrawingsDynamically:(NSArray *)drawings
+{
+    if (_pdfDocument) {
+        PDFPage *currentPage = _pdfView.currentPage;
+         unsigned long page = [_pdfDocument indexForPage:currentPage];
+         unsigned long numberOfPages = _pdfDocument.pageCount;
+         for (PDFAnnotation *object in _drawingsV2Added) {
+  
+         
+                    // object.shouldDisplay = NO;
+             PDFPage *annotationPage = object.page;
+             [annotationPage removeAnnotation:object];
+           
+             
+             
+         }
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [_drawingsV2Added removeAllObjects];
+            
+            _drawingsV2 = drawings;
+            [self addDrawingsV2ToView];
+            [_pdfView setNeedsDisplay];
+            [_pdfView layoutDocumentView];
+        });
+       
+       
+        
+       
+    }
+
 }
 
 - (void)addLineAtSpot:(long)pageNb startXPerc:(float)startXPerc startYPerc:(float)startYPerc endXPerc:(float)endXPerc endYPerc:(float)endYPerc color:(NSString *)color
@@ -1475,6 +1651,23 @@ CGContextRef _context;
         _onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"pageChanged|%lu|%lu", page+1, numberOfPages]]});
         //iterate drawings added, hide the ones 1 pages off and show the ones on the current page, previous page and next page
         for (PDFAnnotation *object in _drawingsAdded) {
+            if (page - 1 == [_pdfDocument indexForPage:object.page] || page == [_pdfDocument indexForPage:object.page] || page + 1 == [_pdfDocument indexForPage:object.page]) {
+                
+                //add annotation
+                //PDFPage *page = [_pdfDocument pageAtIndex:object.page];
+                //[page addAnnotation:object];
+
+                object.shouldDisplay = YES;
+                //object.
+            }
+            else {
+                //PDFPage *page = [_pdfDocument pageAtIndex:object.page];
+                //[page removeAnnotation:object];
+                object.shouldDisplay = NO;
+            }
+        }
+        
+        for (PDFAnnotation *object in _drawingsV2Added) {
             if (page - 1 == [_pdfDocument indexForPage:object.page] || page == [_pdfDocument indexForPage:object.page] || page + 1 == [_pdfDocument indexForPage:object.page]) {
                 
                 //add annotation
@@ -2076,7 +2269,7 @@ CGContextRef _context;
     return jsonStringOut;
 }
 
-
+/*
 //can handle points on different pages
 - (NSString *) convertPointArray:(NSString *)input
 {
@@ -2138,6 +2331,66 @@ CGContextRef _context;
     NSLog(@"xcode output: %@", jsonStringOut);
     return jsonStringOut;
 }
+ */
+
+- (NSDictionary *)processPoint:(float)x y:(float)y {
+    PDFPage *pdfPage = [_pdfView pageForPoint:CGPointMake(x, y) nearest:YES];
+    unsigned long page = [_pdfDocument indexForPage:pdfPage];
+    
+    CGPoint point = CGPointMake(x, y);
+    CGPoint convertedPoint = [self convertPointToPercent:point pdfPage:pdfPage];
+    CGRect pdfPageRect = [pdfPage boundsForBox:kPDFDisplayBoxMediaBox];
+    
+    int pageWidth = pdfPageRect.size.width;
+    int pageHeight = pdfPageRect.size.height;
+    if (pdfPage.rotation == 90 || pdfPage.rotation == 270) {
+        pageWidth = pdfPageRect.size.height;
+        pageHeight = pdfPageRect.size.width;
+    }
+    
+    return [NSDictionary dictionaryWithObjectsAndKeys:
+            [NSNumber numberWithFloat:convertedPoint.x], @"x",
+            [NSNumber numberWithFloat:convertedPoint.y], @"y",
+            [NSNumber numberWithUnsignedLong:page], @"pageNb",
+            [NSNumber numberWithInt:pageWidth], @"pageWidth",
+            [NSNumber numberWithInt:pageHeight], @"pageHeight",
+            nil];
+}
+
+- (NSString *)convertPointArray:(NSString *)input {
+    NSError *e = nil;
+    NSData *data = [input dataUsingEncoding:NSUTF8StringEncoding];
+    NSDictionary *jsonData = [NSJSONSerialization JSONObjectWithData:data
+                                                           options:NSJSONReadingMutableContainers
+                                                             error:&e];
+    
+    NSArray *pointsArray = [jsonData objectForKey:@"points"];
+    NSMutableArray *outputArray = [@[] mutableCopy];
+    
+//NSLog(@"xcode input: %@", input);
+    
+    for (id object in pointsArray) {
+        float x = [[object objectForKey:@"x"] floatValue];
+        float y = [[object objectForKey:@"y"] floatValue];
+        
+        NSDictionary *obj = [self processPoint:x y:y];
+        [outputArray addObject:obj];
+    }
+    
+    NSDictionary *dict = @{@"points": outputArray};
+    
+    NSData *jsonDataOut = [NSJSONSerialization dataWithJSONObject:dict
+                                                         options:0
+                                                           error:&e];
+    NSString *jsonStringOut = [[NSString alloc] initWithData:jsonDataOut
+                                                   encoding:NSUTF8StringEncoding];
+    
+//  NSLog(@"xcode output: %@", jsonStringOut);
+    return jsonStringOut;
+}
+
+
+
 
 - (CGPoint) convertPointToPercent:(CGPoint)point pdfPage:(PDFPage *)pdfPage
 {
@@ -2292,9 +2545,56 @@ CGContextRef _context;
     }
 	float zoom = _pdfView.scaleFactor/_fixScaleFactor;
 	//onPositionChanged={(currentPage, pageFocusX, pageFocusY, zoom, positionOffset)
-    _onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"iosPositionChanged|%lu|%f|%f|%f|%f|%f|%f|%d|%f|%f|%f", (pageNb + 1), savedRect.origin.x,  savedRect.origin.y, savedRect.size.width, savedRect.size.height, zoom, posYFromSelectedPage, _isLandscape,  [self getHighlighterHorizontalPos :pageNb], [self getHighlighterVerticalPos :pageNb] ]]});
-	
-	
+    
+
+    CGFloat windowWidth = _pdfView.bounds.size.width;
+    CGFloat windowHeight = _pdfView.bounds.size.height;
+
+    
+    NSDictionary *topLeft = [self processPoint:0 y:0];
+    NSDictionary *topRight = [self processPoint:windowWidth y:0];
+    NSDictionary *middleLeft = [self processPoint:0 y:windowHeight / 2];
+    NSDictionary *middleRight = [self processPoint:windowWidth y:windowHeight / 2];
+    NSDictionary *bottomLeft = [self processPoint:0 y:windowHeight];
+    NSDictionary *bottomRight = [self processPoint:windowWidth y:windowHeight];
+
+    // Create the pagesVisibility dictionary
+    NSDictionary *pagesVisibility = @{
+        @"topLeft": topLeft,
+        @"topRight": topRight,
+        @"middleLeft": middleLeft,
+        @"middleRight": middleRight,
+        @"bottomLeft": bottomLeft,
+        @"bottomRight": bottomRight
+    };
+/*
+    // Add it to your main JSON dictionary
+    NSDictionary *jsonDict = @{
+        @"currentPage": @(pageNb + 1),
+        @"pageFocusX": @(savedRect.origin.x),
+        @"pageFocusY": @(savedRect.origin.y),
+        @"width": @(savedRect.size.width),
+        @"height": @(savedRect.size.height),
+        @"zoom": @(zoom),
+        @"positionOffset": @(posYFromSelectedPage),
+        @"isLandscape": @(_isLandscape),
+        @"highlighterHorizontalPos": @([self getHighlighterHorizontalPos:pageNb]),
+        @"highlighterVerticalPos": @([self getHighlighterVerticalPos:pageNb]),
+        @"pagesVisibility": pagesVisibility
+    };*/
+
+    NSError *error;
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:pagesVisibility
+                                                      options:0
+                                                        error:&error];
+        
+   
+    NSString *jsonString = [[NSString alloc] initWithData:jsonData
+                                                    encoding:NSUTF8StringEncoding];
+     
+    
+    _onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"iosPositionChanged|%lu|%f|%f|%f|%f|%f|%f|%d|%f|%f|%@", (pageNb + 1), savedRect.origin.x,  savedRect.origin.y, savedRect.size.width, savedRect.size.height, zoom, posYFromSelectedPage, _isLandscape,  [self getHighlighterHorizontalPos :pageNb], [self getHighlighterVerticalPos :pageNb], jsonString ]]});
+    
 	//NSLog(@"has moved sending new pos %f", savedRect.origin.y);
 }
 
