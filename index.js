@@ -84,6 +84,7 @@ export default class Pdf extends Component {
         showPagesNav: PropTypes.bool,
         enableDarkMode: PropTypes.bool,
         drawings: PropTypes.array,
+        drawingsV2: PropTypes.array,
         chartHighlights: PropTypes.array,
     };
 
@@ -112,6 +113,7 @@ export default class Pdf extends Component {
         chartEnd: "",
         showPagesNav: false,
         chartHighlights: [],
+        drawingsV2: [],
         onLoadProgress: (percent) => {
         },
         onLoadComplete: (numberOfPages, path, dims, annotationsDisabled) => {
@@ -402,6 +404,25 @@ export default class Pdf extends Component {
        
     }
 
+    setDrawingsDynamically(drawings) {
+
+
+        if (Platform.OS === "ios") {
+            const PdfViewManagerNative = require('react-native').NativeModules.PdfViewManager;
+             PdfViewManagerNative.setDrawingsDynamically(drawings);
+        }
+        else {
+             UIManager.dispatchViewManagerCommand(
+                    findNodeHandle(this._root),
+                    UIManager.RCTPdf.Commands.setDrawingsDynamically,
+                    [drawings],
+                );
+        }
+    
+        
+       
+    }
+
 
     getConvertedPointArray(pointsIn, callback) {
 
@@ -458,12 +479,12 @@ export default class Pdf extends Component {
             if (message[0] === 'positionChanged') {
 
                   //  console.log("positionChanged", Number(message[1]), Number(message[2]), Number(message[3]), Number(message[4]), Number(message[5]))
-                 this.props.onPositionChanged && this.props.onPositionChanged(Number(message[1]), Number(message[2]), Number(message[3]), Number(message[4]), Number(message[5]), Number(message[6]), Number(message[7]), Number(message[8]), Number(message[9]), Number(message[10]), Number(message[11]));
+                 this.props.onPositionChanged && this.props.onPositionChanged(Number(message[1]), Number(message[2]), Number(message[3]), Number(message[4]), Number(message[5]), Number(message[6]), Number(message[7]), Number(message[8]), Number(message[9]), Number(message[10]), Number(message[11]), message[12] ? JSON.parse(message[12]) : null);
                // alert(message[1])
             }
             else if (message[0] === 'iosPositionChanged') {
                     console.log('iosPositionChanged', message)
-                    this.props.onIosPositionChanged && this.props.onIosPositionChanged(Number(message[1]), Number(message[2]), Number(message[3]), Number(message[4]), Number(message[5]), Number(message[6]), Number(message[7]), Number(message[8]), Number(message[9]), Number(message[10]), Number(message[11]) );
+                    this.props.onIosPositionChanged && this.props.onIosPositionChanged(Number(message[1]), Number(message[2]), Number(message[3]), Number(message[4]), Number(message[5]), Number(message[6]), Number(message[7]), Number(message[8]), Number(message[9]), Number(message[10]), message[11] ? JSON.parse(message[11]) : null );
                 }
             else {
                 if (message.length > 5 && message[0] !== 'loadComplete') {
