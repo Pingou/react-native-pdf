@@ -1096,6 +1096,14 @@ CGContextRef _context;
     for (id object in _drawingsV2) {
         // do something with object
         
+        //if already done, skip
+        if ([_drawingsV2Added containsObject:object]) {
+            continue;
+        }
+        //if too far from current page, skip
+       // if (ABS([[object objectForKey:@"pageNb"] integerValue] - _page) > 1) {
+       //     continue;
+       // }
         
         float xPercStart = 0.0f;
         float yPercStart = 0.0f;
@@ -1650,7 +1658,7 @@ CGContextRef _context;
 
         _onChange(@{ @"message": [[NSString alloc] initWithString:[NSString stringWithFormat:@"pageChanged|%lu|%lu", page+1, numberOfPages]]});
         //iterate drawings added, hide the ones 1 pages off and show the ones on the current page, previous page and next page
-        for (PDFAnnotation *object in _drawingsAdded) {
+      /*  for (PDFAnnotation *object in _drawingsAdded) {
             if (page - 1 == [_pdfDocument indexForPage:object.page] || page == [_pdfDocument indexForPage:object.page] || page + 1 == [_pdfDocument indexForPage:object.page]) {
                 
                 //add annotation
@@ -1682,7 +1690,8 @@ CGContextRef _context;
                 //[page removeAnnotation:object];
                 object.shouldDisplay = NO;
             }
-        }
+        }*/
+        //[self addDrawingsV2ToView];
     }
     
 }

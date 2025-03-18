@@ -253,6 +253,8 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
         public int size;
         public Bitmap image;
 
+        public String imgPath;
+
         public boolean isSvg;
         public PdfDrawing() {
 
@@ -275,21 +277,23 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
             this.endY = 100.0f;
             this.pageNb = pageNb;
             this.isSvg = true;
+            this.imgPath = imgPath;
 
+            /*
             try {
                 this.image = this.generateImage(imgPath);
             } catch (Exception e) {
                 Log.d("error loading svg:", " " + e.getMessage());
-            }
+            }*/
         }
 
-        public Bitmap generateImage(String imgPath) throws FileNotFoundException, SVGParseException {
+        public Bitmap generateImage() throws FileNotFoundException, SVGParseException {
             // Create a Bitmap to render our SVG to
 
 
             SVG svg = null;
             try {
-                File file = new File(imgPath);
+                File file = new File(this.imgPath);
                 FileInputStream inputStream = new FileInputStream(file);
 
                 svg = SVG.getFromInputStream(inputStream);
@@ -308,6 +312,7 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
             svg.renderToCanvas(canvas);
 
+            this.image = bm;
             return bm;
         }
     }
@@ -1042,6 +1047,9 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                         rect.bottom = (int) endY;
 
 
+                        if (pdfDrawing.image == null) {
+                            pdfDrawing.generateImage();
+                        }
                         canvas.drawBitmap(pdfDrawing.image
                                 , null
                                 , rect
