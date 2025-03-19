@@ -163,6 +163,26 @@ export default class Pdf extends Component {
 
     }
 
+    shouldComponentUpdate(nextProps, nextState) {
+        console.log("shouldComponentUpdate", this.props, nextProps)
+        if (!this.props.viewWidth || nextProps.viewWidth !== this.props.viewWidth || nextProps.viewHeight !== this.props.viewHeight)
+            return true;
+        if (nextProps.drawings !== this.props.drawings)
+            return true;
+        if (nextProps.highlightLines !== this.props.highlightLines)
+            return true;
+        if (nextProps.annotations !== this.props.annotations)
+            return true;
+        if (nextProps.chartStart !== this.props.chartStart)
+            return true;
+        if (nextProps.chartEnd !== this.props.chartEnd)
+            return true;
+        if (nextProps.chartHighlights !== this.props.chartHighlights)
+            return true;
+        
+        return false; 
+    } 
+
     componentWillReceiveProps(nextProps) {
 
         const nextSource = resolveAssetSource(nextProps.source);
