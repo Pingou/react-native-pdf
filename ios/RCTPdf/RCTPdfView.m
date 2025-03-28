@@ -197,6 +197,7 @@ CGContextRef _context;
 	bool _initializing;
 	NSTimer *_timerPosition;
     NSTimer *_timerPosition2;
+    NSTimer *_timerAddChartHighlight;
     int _highlighter_page;
     int _isLandscape;
     NSMutableArray<PDFAnnotation *> *_annotationsAdded;
@@ -253,6 +254,8 @@ CGContextRef _context;
         
 		_timerPosition = nil;
         _timerPosition2 = nil;
+        
+        _timerAddChartHighlight = nil;
         
         _hasRestoredViewState = NO;
         _showPagesNav = NO;
@@ -544,7 +547,7 @@ CGContextRef _context;
        
        // [_pdfView setLayoutMargins:UIEdgeInsetsMake(0, 0, 100, 0)];
                              
-        if (_pdfDocument && ([changedProps containsObject:@"path"] || [changedProps containsObject:@"enablePaging"] || [changedProps containsObject:@"horizontal"] || [changedProps containsObject:@"page"] || [changedProps containsObject:@"restoreViewState"] || [changedProps containsObject:@"annotations"] || [changedProps containsObject:@"highlightLines"] || [changedProps containsObject:@"drawings"] || [changedProps containsObject:@"drawingsV2"])) {
+        if (_pdfDocument && ([changedProps containsObject:@"path"] || [changedProps containsObject:@"enablePaging"] || [changedProps containsObject:@"horizontal"] || [changedProps containsObject:@"page"] || [changedProps containsObject:@"restoreViewState"] || [changedProps containsObject:@"annotations"] || [changedProps containsObject:@"highlightLines"] || [changedProps containsObject:@"chartHighlights"] || [changedProps containsObject:@"drawings"] || [changedProps containsObject:@"drawingsV2"])) {
 			
             
             PDFPage *pdfPage = nil;
@@ -924,30 +927,9 @@ CGContextRef _context;
                     [self addDrawingsV2ToView];
                 
                 }
-                if (_chartHighlights != nil && [_chartHighlights count] > 0) {
-                    for (id object in _chartHighlights) {
-                        float startXPerc = [[object objectForKey:@"startX"] floatValue];
-                        float startYPerc = [[object objectForKey:@"startY"] floatValue];
-                        float endXPerc = [[object objectForKey:@"endX"] floatValue];
-                        float endYPerc = [[object objectForKey:@"endY"] floatValue];
-                        
-                        long pageNb = [[object objectForKey:@"pageNb"] integerValue];
-                       
-                        int chartId = [[object objectForKey:@"id"] integerValue];
-                        NSString* chartIdStr = [NSString stringWithFormat:@"%i", chartId];
-                        NSString *color = (NSString *)[object objectForKey:@"color"];
-                    
-                        PDFAnnotation *annotation = [self addHighlightAnnotationAtSpot:(pageNb -1) startXPerc:startXPerc startYPerc:startYPerc endXPerc:endXPerc endYPerc:endYPerc color:color];
-                        
-                        [_chartHighlightsAdded addObject:annotation];
-                        
-                        UIImage *pencilIcon = [UIImage imageNamed:@"pencil"];
-                        PDFAnnotation *editHightlight = [self addImgAnnotationAtSpot:(pageNb - 1) xPerc:startXPerc yPerc:startYPerc image:pencilIcon imgSizeMultiplier:0.5 action:@"edit_chart" actionParam:chartIdStr alpha:0.7];
-                        
-                        [_editChartHighlightsAdded addObject:editHightlight];
-                        
-                    }
-                }
+               /* if (_chartHighlights != nil && [_chartHighlights count] > 0) {
+                    [self addChartHighlightsToView];
+                }*/
                 if (_highlightLines != nil && [_highlightLines count] > 0) {
                     for (id object in _highlightLines) {
                         // do something with object
@@ -1064,6 +1046,12 @@ CGContextRef _context;
         [self setNeedsDisplay];
         
         
+        //on les ajoute avec un timer sinon ca bug sur la page 5 de files/1837826_FVDWGEOV.pdf
+        _timerAddChartHighlight = [NSTimer scheduledTimerWithTimeInterval:2
+                                         target:self
+                                                         selector:@selector(addChartHighlightsToView)
+                                       userInfo:nil
+                                        repeats:NO];
         if (!_hasSentPosInit || zoomFromRestoreViewState != _lastZoomLevel) {
             _hasSentPosInit = true;
             _lastZoomLevel = zoomFromRestoreViewState;
@@ -1219,6 +1207,60 @@ CGContextRef _context;
 
 }
 
+- (void)addChartHighlightsToView
+{
+    PDFPage *pdfPage = nil;
+    if (_page == -1)
+        pdfPage = [_pdfDocument pageAtIndex:0];
+    else
+        pdfPage = [_pdfDocument pageAtIndex:_page - 1];
+    
+    
+    //delete all previous chart highlights
+    for (PDFAnnotation *object in _chartHighlightsAdded) {
+         PDFPage *annotationPage = object.page;
+         [annotationPage removeAnnotation:object];
+     }
+    for (PDFAnnotation *object in _editChartHighlightsAdded) {
+               // object.shouldDisplay = NO;
+        PDFPage *annotationPage = object.page;
+        [annotationPage removeAnnotation:object];
+    }
+    [_chartHighlightsAdded removeAllObjects];
+    [_editChartHighlightsAdded removeAllObjects];
+    for (id object in _chartHighlights) {
+        // do something with object
+        
+        //if already done, skip
+        if ([_chartHighlightsAdded containsObject:object]) {
+            continue;
+        }
+        float startXPerc = [[object objectForKey:@"startX"] floatValue];
+        float startYPerc = [[object objectForKey:@"startY"] floatValue];
+        float endXPerc = [[object objectForKey:@"endX"] floatValue];
+        float endYPerc = [[object objectForKey:@"endY"] floatValue];
+        
+        long pageNb = [[object objectForKey:@"pageNb"] integerValue];
+       
+        int chartId = [[object objectForKey:@"id"] integerValue];
+        NSString* chartIdStr = [NSString stringWithFormat:@"%i", chartId];
+        NSString *color = (NSString *)[object objectForKey:@"color"];
+    
+        PDFAnnotation *annotation = [self addHighlightAnnotationAtSpot:(pageNb -1) startXPerc:startXPerc startYPerc:startYPerc endXPerc:endXPerc endYPerc:endYPerc color:color];
+        
+        [_chartHighlightsAdded addObject:annotation];
+        
+        UIImage *pencilIcon = [UIImage imageNamed:@"pencil"];
+        PDFAnnotation *editHightlight = [self addImgAnnotationAtSpot:(pageNb - 1) xPerc:startXPerc yPerc:startYPerc image:pencilIcon imgSizeMultiplier:0.5 action:@"edit_chart" actionParam:chartIdStr alpha:0.7];
+        
+        [_editChartHighlightsAdded addObject:editHightlight];
+        
+      
+        
+    }
+
+}
+
 - (void)setDrawingsDynamically:(NSArray *)drawings
 {
     if (_pdfDocument) {
@@ -1235,11 +1277,87 @@ CGContextRef _context;
              
              
          }
+        
         dispatch_async(dispatch_get_main_queue(), ^{
             [_drawingsV2Added removeAllObjects];
             
             _drawingsV2 = drawings;
             [self addDrawingsV2ToView];
+            [_pdfView setNeedsDisplay];
+            [_pdfView layoutDocumentView];
+        });
+       
+       
+        
+       
+    }
+
+}
+
+
+- (void)setChartHighlightsDynamically:(NSArray *)chartHighlights
+{
+    if (_pdfDocument) {
+        if (_timerAddChartHighlight) {
+            [_timerAddChartHighlight invalidate];
+            _timerAddChartHighlight = nil;
+        }
+        
+        NSLog(@"setChartHighlightsDynamically %d", chartHighlights.count);
+        
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            
+            PDFPage *currentPage = _pdfView.currentPage;
+             unsigned long page = [_pdfDocument indexForPage:currentPage];
+             unsigned long numberOfPages = _pdfDocument.pageCount;
+            /*for (PDFAnnotation *object in _chartHighlightsAdded) {
+      
+             
+                        // object.shouldDisplay = NO;
+                 PDFPage *annotationPage = object.page;
+                 [annotationPage removeAnnotation:object];
+               
+                 
+                 
+             }
+            for (PDFAnnotation *object in _editChartHighlightsAdded) {
+     
+            
+                       // object.shouldDisplay = NO;
+                PDFPage *annotationPage = object.page;
+                [annotationPage removeAnnotation:object];
+              
+                
+                
+            }*/
+           /* for (NSInteger i = 0; i < [_pdfDocument pageCount]; i++) {
+                    PDFPage *page = [_pdfDocument pageAtIndex:i];
+                    
+                    // Keep removing annotations until none are left
+                    BOOL annotationsRemoved = YES;
+                    while (annotationsRemoved) {
+                        NSArray *annotations = [page annotations];
+                        
+                        if ([annotations count] == 0) {
+                            annotationsRemoved = NO;
+                            continue;
+                        }
+                        
+                        NSArray *annotationsCopy = [[page annotations] copy];
+                        for (PDFAnnotation *annotation in annotationsCopy) {
+                            [page removeAnnotation:annotation];
+                        }
+                    }
+                }*/
+            //[_pdfDocument exchangePageAtIndex:0 withPageAtIndex:0];
+            
+            
+            //[_chartHighlightsAdded removeAllObjects];
+            //[_editChartHighlightsAdded removeAllObjects];
+            
+            _chartHighlights = chartHighlights;
+            [self addChartHighlightsToView];
             [_pdfView setNeedsDisplay];
             [_pdfView layoutDocumentView];
         });
@@ -1497,6 +1615,11 @@ CGContextRef _context;
     if (_timerPosition2) {
         [_timerPosition2 invalidate];
         _timerPosition2 = nil;
+    }
+    
+    if (_timerAddChartHighlight) {
+        [_timerAddChartHighlight invalidate];
+        _timerAddChartHighlight = nil;
     }
     
 }

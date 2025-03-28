@@ -50,6 +50,7 @@ NS_CLASS_AVAILABLE_IOS(11_0) @interface RCTPdfView : UIView <UIGestureRecognizer
 - (NSString *) convertPoints:(NSString *)data;
 - (NSString *) convertPointArray:(NSString *)data;
 - (void) setDrawingsDynamically:(NSArray *)drawings;
+- (void) setChartHighlightsDynamically:(NSArray *)chartHighlights;
 - (void) setHighlighterPos:(int)isVertical :(float)positionPercent :(int)pageNb;
 @end
 

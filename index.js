@@ -443,6 +443,25 @@ export default class Pdf extends Component {
        
     }
 
+    setChartHighlightsDynamically(chartHighlights) {
+
+
+        if (Platform.OS === "ios") {
+            const PdfViewManagerNative = require('react-native').NativeModules.PdfViewManager;
+             PdfViewManagerNative.setChartHighlightsDynamically(chartHighlights);
+        }
+        else {
+             UIManager.dispatchViewManagerCommand(
+                    findNodeHandle(this._root),
+                    UIManager.RCTPdf.Commands.setChartHighlightsDynamically,
+                    [chartHighlights],
+                );
+        }
+    
+        
+       
+    }
+
 
     getConvertedPointArray(pointsIn, callback) {
 

@@ -510,6 +510,24 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
 
     }
 
+    public void setChartHighlightsDynamically(ReadableArray chartHighlights) {
+
+
+        this.chartHighlights = new ArrayList<>();
+        if (chartHighlights != null) {
+            for (int i = 0; i < chartHighlights.size(); i++) {
+                ReadableMap obj = chartHighlights.getMap(i);
+
+
+                PdfView.PdfHighlightLine newChartHighlight = new PdfView.PdfHighlightLine(obj.getDouble("startX"), obj.getDouble("startY"), obj.getDouble("endX"), obj.getDouble("endY"),
+                        obj.getInt("pageNb"), 0, 0, obj.getString("color"), obj.getInt("id"));
+                this.chartHighlights.add(newChartHighlight);
+            }
+        }
+        this.redraw();
+
+    }
+
     //can only handle one page
     public void convertPoints(String stringInput) {
         Gson gson = new Gson();
@@ -645,21 +663,36 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
         int pageNb = instance.getCurrentPage();
         MyCoordinate coordinate = getPercentPosForPage(x, y, pageNb);
 
-        if (coordinate.y > 100 && pageNb < this.totalNumberOfPages - 1) {
-            pageNb += 1;
-            coordinate = getPercentPosForPage(x, y, pageNb);
-        }
-        else if (pageNb > 0 && coordinate.y < 0) {
-            pageNb -= 1;
-            coordinate = getPercentPosForPage(x, y, pageNb);
+        if (!this.singlePage) {
+            if (coordinate.y > 200 && pageNb < this.totalNumberOfPages) {
+                pageNb += 2;
+                coordinate = getPercentPosForPage(x, y, pageNb);
+            } else if (coordinate.y > 100 && pageNb < this.totalNumberOfPages - 1) {
+                pageNb += 1;
+                coordinate = getPercentPosForPage(x, y, pageNb);
+            } else if (pageNb > 1 && coordinate.y < -100) {
+                pageNb -= 2;
+                coordinate = getPercentPosForPage(x, y, pageNb);
+            } else if (pageNb > 0 && coordinate.y < 0) {
+                pageNb -= 1;
+                coordinate = getPercentPosForPage(x, y, pageNb);
+            }
         }
 
         SizeF dim = getPageSize(pageNb);
         JsonObject pointOut = new JsonObject();
 
+        if (coordinate.x > 10000 || coordinate.x < -10000) {
+            coordinate.x = 0;
+            Log.d("PDF error getting coordinate, infinity", "x");
+        }
+        if (coordinate.y > 10000 || coordinate.y < -10000) {
+            coordinate.y = 0;
+            Log.d("PDF error getting coordinate, infinity", "y");
+        }
         pointOut.addProperty("x", coordinate.x);
         pointOut.addProperty("y", coordinate.y);
-        pointOut.addProperty("pageNb", pageNb);
+        pointOut.addProperty("pageNb", this.singlePage ? this.originalPage : pageNb);
         pointOut.addProperty("pageWidth", dim.getWidth());
         pointOut.addProperty("pageHeight", dim.getHeight());
 
@@ -983,19 +1016,22 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
                         //Bitmap bitmapResized = Bitmap.createScaledBitmap(bitmap, 260, (int) (pageHeight + (pageHeight / 2)), false);
 
                         float paddingX = 0.0f;
-                        try {
-                            if (instance.isSwipeVertical()) {
-                                paddingX = instance.getSecondaryPageOffset(pdfDrawing.pageNb, this.getZoom());
-                            } else {
-                                paddingX = instance.getPageOffset(pdfDrawing.pageNb, this.getZoom());
-                            }
-                        } catch (Exception e) {
 
+                        if (!this.singlePage) {
+                            try {
+                                if (instance.isSwipeVertical()) {
+                                    paddingX = instance.getSecondaryPageOffset(pdfDrawing.pageNb, this.getZoom());
+                                } else {
+                                    paddingX = instance.getPageOffset(pdfDrawing.pageNb, this.getZoom());
+                                }
+                            } catch (Exception e) {
+
+                            }
                         }
                         float drawingPageWidth = pageWidth;
                         float drawingPageHeight = pageHeight;
 
-                        if (pdfDrawing.pageNb != displayedPage) {
+                        if (pdfDrawing.pageNb != displayedPage && !this.singlePage) {
                             //check if same format
                             SizeF displayedPageRec = instance.getPageSize(displayedPage);
                             SizeF rec = instance.getPageSize(pdfDrawing.pageNb);
@@ -1493,10 +1529,10 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
     public void setPage(int page) {
         page = page < 0 ? 0 : page;
         this.originalPage = page;
-        if (!this.singlePage)
-            this.page = page;
-        else
-            this.page = 0;
+      //  if (!this.singlePage)
+           this.page = page;
+       // else
+      //      this.page = 0;
     }
 
     public void setScale(float scale) {

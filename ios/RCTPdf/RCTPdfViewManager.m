@@ -90,12 +90,16 @@ RCT_EXPORT_METHOD(getConvertedPointArray:(NSString *)input :(RCTResponseSenderBl
   
 }
 
-//can handle points on different pages
+
 RCT_EXPORT_METHOD(setDrawingsDynamically:(NSArray *)drawings)
 {
     [RctpdfView setDrawingsDynamically:drawings];
 }
 
+RCT_EXPORT_METHOD(setChartHighlightsDynamically:(NSArray *)chartHighlights)
+{
+    [RctpdfView setChartHighlightsDynamically:chartHighlights];
+}
 
 RCT_EXPORT_METHOD(setHighlighterPos:(int)isVertical :(float)positionPercent :(int)pageNb)
 {

@@ -58,6 +58,8 @@ public class RCTPdfManager extends SimpleViewManager<PdfView> {
 
     public static final int COMMAND_SET_DRAWINGS_DYNAMICALLY = 9549214;
 
+    public static final int COMMAND_SET_CHART_HIGHLIGHTS_DYNAMICALLY = 9549215;
+
     public RCTPdfManager(ReactApplicationContext reactContext){
         this.context = reactContext;
     }
@@ -91,6 +93,7 @@ public class RCTPdfManager extends SimpleViewManager<PdfView> {
         map.put("getConvertedPointsArray", COMMAND_CONVERT_POINTS_ARRAY);
         map.put("setHighlighterPos", COMMAND_SET_HIGHLIGHTER_POS);
         map.put("setDrawingsDynamically", COMMAND_SET_DRAWINGS_DYNAMICALLY);
+        map.put("setChartHighlightsDynamically", COMMAND_SET_CHART_HIGHLIGHTS_DYNAMICALLY);
 
         return map;
         //Log.d("React"," View manager getCommandsMap:");
@@ -123,6 +126,12 @@ public class RCTPdfManager extends SimpleViewManager<PdfView> {
                 view.setDrawingsDynamically(args.getArray(0));
                 return;
             }
+            case COMMAND_SET_CHART_HIGHLIGHTS_DYNAMICALLY: {
+                view.setChartHighlightsDynamically(args.getArray(0));
+                return;
+            }
+
+
 
             default:
                 throw new IllegalArgumentException(String.format(
