@@ -503,7 +503,7 @@ export default class Pdf extends Component {
 
         let message = event.nativeEvent.message.split('|');
 
-       
+       try {
         __DEV__ && console.log("onChange: " + message);
         if (message.length > 0) {
 
@@ -587,8 +587,11 @@ export default class Pdf extends Component {
 
 
 
-
             }
+            }
+        }
+        catch (e) {
+            console.log("ERROR pdf", e.message)
         }
 
     };
